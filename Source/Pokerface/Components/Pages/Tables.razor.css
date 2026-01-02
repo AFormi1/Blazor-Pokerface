@@ -2,7 +2,7 @@
 .page-wrapper {
     display: flex;
     flex-direction: column;
-    height: calc(100vh - 4rem); /* leave some padding if needed */
+    height: calc(100vh - 4rem);
     margin: 1rem;
     background-color: rgba(0,0,0,0.85);
     border: 2px solid var(--bs-primary);

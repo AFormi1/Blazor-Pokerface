@@ -1,0 +1,38 @@
+﻿@inject CardTemplateProvider CardProvider
+
+<div class="poker-card" style="@PositionStyle; background-image:url('@ImageUrl');"></div>
+
+@code {
+    [Parameter] public string Rank { get; set; } = "A";
+    [Parameter] public string Suit { get; set; } = "♠";
+    [Parameter] public bool ShowFront { get; set; } = false;
+
+    [Parameter] public double Width { get; set; } = 150;
+    [Parameter] public double Height { get; set; } = 200;
+    [Parameter] public double LeftPercent { get; set; } = 50;
+    [Parameter] public double TopPercent { get; set; } = 50;
+
+    private string ImageUrl => ShowFront ? $"/images/cards/{Rank}_{Suit}.svg" : "/images/cards/standard_back.svg";
+
+    private string PositionStyle => $"position:absolute; left:{LeftPercent}%; top:{TopPercent}%; transform:translate(-50%, -50%); width:{Width}px; height:{Height}px;";
+
+    public void Position(DomRect containerSize, double xPercent, double yPercent)
+    {
+        if (containerSize == null) return;
+
+        double widthScale = 0.042;
+
+        double horizontalOffset = 0.0;
+        double verticalOffset = 0.0;
+
+        // Calculate size based on container width
+        Width = (int)(Math.Round(containerSize.Width * widthScale, 0));   // widthScale = fraction of table width
+        Height = (int)(Math.Round(Width * 1.6, 0));                       // maintain 5:8 aspect ratio
+
+        // Update percentages
+        LeftPercent = (int)(Math.Round(xPercent + horizontalOffset, 0));
+        TopPercent = (int)(Math.Round(yPercent + verticalOffset, 0));
+
+        StateHasChanged(); // trigger rerender
+    }
+}

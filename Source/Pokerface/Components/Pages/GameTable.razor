@@ -3,21 +3,51 @@
 @inject NavigationManager nav
 @inject IJSRuntime JS
 
+
 <PageTitle>Game Table</PageTitle>
 
-<div class="centered-content">
-    <div class="header-wrapper">
-        <h2 class="text-primary">Spieltisch juhu</h2>
-    </div>
+<div class="gametable-wrapper" @ref="TableRef">
+    <PokerCard @ref="flop1" Rank="A" Suit="♠" ShowFront="false" />
 </div>
 
-
-
-
 @code {
-
     [Parameter]
     public int Id { get; set; }
-      
+
+    private ElementReference TableRef;
+    private DotNetObjectReference<GameTable>? dotNetRef;
+
+    private PokerCard? flop1;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            // initial sizing
+            DomRect tableSize = await JS.InvokeAsync<DomRect>("getElementSize", TableRef);
+            if (flop1 != null) flop1.Position(tableSize, 50, 50);
+
+            // register resize callback
+            dotNetRef = DotNetObjectReference.Create(this);
+            await JS.InvokeVoidAsync("registerResizeHandler", dotNetRef);
+        }
+    }
+
+    [JSInvokable]
+    public async Task OnWindowResize()
+    {
+        // recalc table size
+        DomRect tableSize = await JS.InvokeAsync<DomRect>("getElementSize", TableRef);
+        if (flop1 != null) flop1.Position(tableSize, 50, 50);
+
+        StateHasChanged();
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        dotNetRef?.Dispose();
+    }
+
 }
+
 
