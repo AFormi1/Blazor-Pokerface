@@ -1,0 +1,108 @@
+﻿@page "/settable"
+@page "/settable/{Id:guid}"
+
+@inject NavigationManager nav
+@inject TableService TableService
+
+<h3>Tisch erstellen / bearbeiten</h3>
+
+<br />
+
+@if (tableModel != null)
+{
+    <EditForm Model="tableModel" FormName="SubmitTableForm" OnValidSubmit="OnSubmit">
+        <DataAnnotationsValidator />
+
+        <div class="row mb-3">
+            <div class="col-2">
+                <label class="col-form-label">Name:</label>
+            </div>
+            <div class="col-6">
+                <InputText @bind-Value="tableModel.Name" class="form-control" />
+            </div>
+            <div class="col">
+                <ValidationMessage For="() => tableModel.Name" />
+                @if (nameIsUnique)
+                {
+                    <div class="text-danger">
+                        Der Name existiert bereits.
+                    </div>
+                }
+            </div>
+        </div>
+
+        <div class="row mb-3">
+            <div class="col-2">
+                <label class="col-form-label">Maximale Spieler:</label>
+            </div>
+            <div class="col-6">
+                <InputNumber @bind-Value="tableModel.MaxUsers" class="form-control" />
+            </div>
+            <div class="col">
+                <ValidationMessage For="() => tableModel.MaxUsers" />
+            </div>
+        </div>
+
+        <div class="row mb-3">
+            <div class="col-2">
+                <label class="col-form-label">Status:</label>
+            </div>
+            <div class="col-6">
+                <input type="checkbox" checked="@tableModel.IsActive" disabled />
+            </div>
+        </div>
+
+        <br />
+        <button class="btn btn-primary" type="submit">Speichern</button>
+        &nbsp;
+        <a href="/home" class="btn btn-primary">Close</a>
+    </EditForm>
+}
+
+
+@code {
+
+    [Parameter]
+    public Guid Id { get; set; }
+
+    [SupplyParameterFromForm(FormName = "SubmitTableForm")]
+    private TableModel? tableModel { get; set; }
+
+    private bool nameIsUnique;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (tableModel != null)
+            return;
+
+        if (Id == Guid.Empty)
+        {
+            tableModel = TableService.CreateNewTable();
+        }
+        else
+        {
+            tableModel = await TableService.GetTableByIdAsync(Id);
+        }
+    }
+
+    private async Task OnSubmit()
+    {
+
+        if (tableModel == null)
+            return;
+
+        //check for a unique name
+        nameIsUnique = await TableService.IsTableNameUniqueAsync(tableModel.Name);
+
+        if (!nameIsUnique)
+        {
+            await Task.Delay(2000);
+            nameIsUnique = false;
+            return;
+        }
+
+        await TableService.SaveTableAsync(tableModel);
+        nav.NavigateTo("/tables");
+    }
+}
+
