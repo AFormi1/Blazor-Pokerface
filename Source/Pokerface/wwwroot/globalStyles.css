@@ -1,0 +1,29 @@
+﻿.centered-content {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+    border: 2px solid var(--bs-primary);
+    border-radius: 15px;
+    padding: 4rem;
+    background-color: rgba(0, 0, 0, 0.85);
+}
+
+/* Container that wraps heading and button */
+.header-wrapper {
+    display: inline-block; /* shrink to heading width */
+    text-align: center;
+}
+
+    /* Make button take full width of the wrapper */
+    .header-wrapper .btn {
+        width: 100%;
+    }
+
+
+
+
+
+
+  

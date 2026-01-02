@@ -1,9 +1,8 @@
 html, body {
-    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    height: 100%;
     margin: 0;
     padding: 0;
-    height: 100%; /* ensure full height */
-    width: 100%;
+    overflow: hidden; /* Prevent scrollbars */
 }
 
 a, .btn-link {
