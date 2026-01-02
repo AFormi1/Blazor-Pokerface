@@ -1,0 +1,60 @@
+﻿@page "/tables"
+@attribute [StreamRendering]
+
+@inject TableService TableService
+
+<PageTitle>Verfügbare Tische</PageTitle>
+
+<h2>Verfügbare Tische</h2>
+
+<br />
+<a href="/settable/" class="btn btn-primary">Tisch erstellen</a>
+<br />
+<br />
+
+
+@if (tables == null)
+{
+    <p><em>Loading...</em></p>
+}
+else
+{
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Tischname</th>
+                <th>Maximale Spieler</th>
+                <th>Aktuelle Spieler</th>
+                <th>Status</th>
+                <th>Aktion</th>
+            </tr>
+        </thead>
+        <tbody>
+
+            @foreach (var table in tables)
+            {
+                <tr>
+                    <td>@table.Name</td>
+                    <td>@table.MaxUsers</td>
+                    <td>@table.CurrentUsers</td>
+                    <td>
+                        <input type="checkbox" checked="@table.IsActive" disabled />
+                    </td>
+                    <td>
+                        <a href="/settable/@table.Id" class="btn btn-sm btn-primary">Bearbeiten</a>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private List<TableModel>? tables;
+
+    protected override async Task OnInitializedAsync()
+    {
+        tables = await TableService.GetTablesAsync();
+    }
+
+}
