@@ -1,0 +1,48 @@
+﻿/* Full height wrapper */
+.page-wrapper {
+    display: flex;
+    flex-direction: column;
+    height: calc(100vh - 4rem); /* leave some padding if needed */
+    margin: 1rem;
+    background-color: rgba(0,0,0,0.85);
+    border: 2px solid var(--bs-primary);
+    border-radius: 15px;
+    padding: 2rem;
+}
+
+.header-wrapper {
+    text-align: center;
+}
+
+
+/* Buttons side by side, smaller size */
+.button-row {
+    display: flex;
+    justify-content: center; /* center all buttons horizontally */
+    gap: 1rem; /* spacing between buttons */
+    margin: 1rem 0 2rem 0;
+}
+    .button-row .btn {
+        width: 200px; /* fixed width for all buttons */
+    }
+
+
+.table-container {
+    flex: 1; /* take remaining height */
+    overflow-y: auto; /* scroll if table is too tall */
+}
+
+/* Make table header sticky */
+.table thead th {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    background-color: #212529; /* dark background to match Bootstrap */
+    color: white;
+}
+
+/* Optional: remove visual jitter */
+.table {
+    border-collapse: separate;
+    border-spacing: 0;
+}

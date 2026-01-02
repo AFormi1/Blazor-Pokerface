@@ -5,74 +5,81 @@
 @inject TableService TableService
 @inject IJSRuntime JS
 
-<h3>Tisch erstellen / bearbeiten</h3>
+<PageTitle>Edit Tables</PageTitle>
 
-<br />
-
-@if (tableModel != null)
-{
-    <EditForm Enhance="true" Model="tableModel" FormName="SubmitTableForm" OnValidSubmit="OnSubmit">
-        <DataAnnotationsValidator />
-
-        <div class="row mb-3">
-            <div class="col-2">
-                <label class="col-form-label">Id:</label>
-            </div>
-            <div class="col-6">
-                <InputNumber @bind-Value="tableModel.Id" class="form-control" readonly />
-            </div>
-        </div>
-
-
-        <div class="row mb-3">
-            <div class="col-2">
-                <label class="col-form-label">Name:</label>
-            </div>
-            <div class="col-6">
-                <InputText @bind-Value="tableModel.Name" class="form-control" />
-            </div>
-            <div class="col d-flex align-items-center">
-                <div>
-                    <ValidationMessage For="() => tableModel.Name" />
-                    @if (!nameIsUnique)
-                    {
-                        <div class="text-danger">
-                            Der Name existiert bereits.
-                        </div>
-                    }
-                </div>
-            </div>
-        </div>
-
-        <div class="row mb-3">
-            <div class="col-2">
-                <label class="col-form-label">Maximale Spieler:</label>
-            </div>
-            <div class="col-6">
-                <InputNumber @bind-Value="tableModel.MaxUsers" class="form-control" />
-            </div>
-            <div class="col">
-                <ValidationMessage For="() => tableModel.MaxUsers" />
-            </div>
-        </div>
-
-        <div class="row mb-3">
-            <div class="col-2">
-                <label class="col-form-label">Status:</label>
-            </div>
-            <div class="col-6 d-flex align-items-center">
-                <input type="checkbox" checked="@tableModel.IsActive" />
-            </div>
-        </div>
+<div class="centered-content">
+    <div class="header-wrapper">
+        <h3 class="text-primary">Tisch erstellen / bearbeiten</h3>
 
         <br />
-        <button class="btn btn-primary" type="submit">Speichern</button>
-        &nbsp;
-        <button type="button" class="btn btn-warning" @onclick="DeleteTable">Löschen</button>
-        &nbsp;
-        <a href="/tables" class="btn btn-primary">Close</a>
-    </EditForm>
-}
+
+        @if (tableModel != null)
+        {
+            <EditForm Enhance="true"
+                      Model="tableModel"
+                      FormName="SubmitTableForm"
+                      OnValidSubmit="OnSubmit">
+
+                <DataAnnotationsValidator />
+
+                <!-- Id -->
+                <div class="form-row">
+                    <label class="form-label text-white">Id</label>
+                    <div class="form-field">
+                        <InputNumber @bind-Value="tableModel.Id"
+                                     class="form-control"
+                                     readonly />
+                    </div>
+                </div>
+
+                <!-- Name -->
+                <div class="form-row">
+                    <label class="form-label text-white">Name</label>
+                    <div class="form-field">
+                        <InputText @bind-Value="tableModel.Name"
+                                   class="form-control" />
+
+                        <ValidationMessage For="() => tableModel.Name" />
+                        @if (!nameIsUnique)
+                        {
+                            <div class="text-danger">
+                                Der Name existiert bereits.
+                            </div>
+                        }
+                    </div>
+                </div>
+
+                <!-- Max Users -->
+                <div class="form-row">
+                    <label class="form-label text-white">Maximale Spieler</label>
+                    <div class="form-field">
+                        <InputNumber @bind-Value="tableModel.MaxUsers"
+                                     class="form-control" />
+                        <ValidationMessage For="() => tableModel.MaxUsers" />
+                    </div>
+                </div>
+
+                <!-- Status -->
+                <div class="form-row">
+                    <label class="form-label text-white">Status</label>
+                    <div class="form-field d-flex align-items-center">
+                        <input type="checkbox" checked="@tableModel.IsActive" disabled/>
+                    </div>
+                </div>
+
+                <br />
+
+                <div class="button-row">
+                    <button class="btn btn-primary" type="submit">Speichern</button>
+                    <button type="button" class="btn btn-warning" @onclick="DeleteTable">Löschen</button>
+                    <a href="/tables" class="btn btn-primary">Close</a>
+                </div>
+
+            </EditForm>
+        }
+    </div>
+</div>
+
 
 
 @code {
@@ -106,7 +113,7 @@
 
         if (!nameIsUnique)
             return;
-     
+
         await TableService.SaveTableAsync(tableModel);
         nav.NavigateTo("/tables");
     }
