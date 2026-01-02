@@ -1,4 +1,5 @@
-﻿using Pokerface.Models;
+﻿using Pokerface.Components.Pages;
+using Pokerface.Models;
 using Pokerface.Services.DB;
 
 namespace Pokerface.Services
@@ -13,30 +14,38 @@ namespace Pokerface.Services
 
         public async Task<List<TableModel>> GetTablesAsync()
         {
-            return await _tableService.GetItemsAsync();
+            var items = await _tableService.GetItemsAsync();
+            return [.. items.OrderBy(x => x.Name).ThenBy(x => x.Id)];
         }
 
-        public async Task<TableModel?> GetTableByIdAsync(Guid id)
+        public async Task<TableModel?> GetTableByIdAsync(int id)
         {
             return await _tableService.GetItemByIdAsync(id);
         }
 
         public async Task<bool> SaveTableAsync(TableModel model)
         {
-            return await _tableService.SaveItemAsync(model) > 0;
+           return await _tableService.SaveItemAsync(model) > 0;
         }
 
-        public async Task<bool> IsTableNameUniqueAsync(string desiredName)
+        public async Task<bool> DeleteTableAsync(TableModel model)
+        {
+            return await _tableService.DeleteItemAsync(model) > 0;
+        }
+
+        public async Task<bool> IsTableNameUniqueAsync(int id, string desiredName)
         {
             var tables = await _tableService.GetItemsAsync();
-            return !tables.Any(t => t.Name.Equals(desiredName, StringComparison.OrdinalIgnoreCase));
+            return !tables.Where(x => x.Id != id).Any(t => t.Name.Equals(desiredName, StringComparison.OrdinalIgnoreCase));
         }
 
-        public TableModel CreateNewTable()
+        public async Task<TableModel> CreateNewTableAsync()
         {
+            int nextID = await GetNextTableIdAsync();
+
             TableModel newTable = new TableModel
             {
-                Id = Guid.NewGuid(),
+                Id = nextID,
                 Name = "Neuer Tisch",
                 IsActive = false,
                 MaxUsers = 8,
@@ -44,6 +53,13 @@ namespace Pokerface.Services
             };
 
             return newTable;
+        }
+
+        public async Task<int> GetNextTableIdAsync()
+        {
+            var count = await _tableService.GetCountAsync();
+                       
+            return count + 1;
         }
     }
 }

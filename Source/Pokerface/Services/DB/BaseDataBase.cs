@@ -1,4 +1,5 @@
 ﻿
+using Pokerface.Models;
 using SQLite;
 
 namespace Pokerface.Services.DB
@@ -199,8 +200,13 @@ namespace Pokerface.Services.DB
             return otherItems.Any(item => itemReferenceSelector(item)?.Any(reference => referenceIdSelector(reference) == referenceId) == true);
         }
 
+        public async Task<int> GetCountAsync<T>() where T : new()
+        {
+            if (Database == null)
+                return 0;
 
-
+            return await Database.Table<T>().CountAsync();
+        }
 
     }
 }
