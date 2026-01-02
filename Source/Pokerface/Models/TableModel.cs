@@ -17,6 +17,9 @@ namespace Pokerface.Models
         public int MaxUsers { get; set; }
 
         public int CurrentUsers { get; set; }
+
+
     }
+
 
 }

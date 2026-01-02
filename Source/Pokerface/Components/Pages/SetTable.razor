@@ -13,6 +13,8 @@
     <EditForm Model="tableModel" FormName="SubmitTableForm" OnValidSubmit="OnSubmit">
         <DataAnnotationsValidator />
 
+        <input type="hidden" name="Id" value="@tableModel.Id" />
+
         <div class="row mb-3">
             <div class="col-2">
                 <label class="col-form-label">Name:</label>
@@ -20,15 +22,18 @@
             <div class="col-6">
                 <InputText @bind-Value="tableModel.Name" class="form-control" />
             </div>
-            <div class="col">
-                <ValidationMessage For="() => tableModel.Name" />
-                @if (nameIsUnique)
-                {
-                    <div class="text-danger">
-                        Der Name existiert bereits.
-                    </div>
-                }
+            <div class="col d-flex align-items-center">
+                <div>
+                    <ValidationMessage For="() => tableModel.Name" />
+                    @if (!nameIsUnique)
+                    {
+                        <div class="text-danger">
+                            Der Name existiert bereits.
+                        </div>
+                    }
+                </div>
             </div>
+
         </div>
 
         <div class="row mb-3">
@@ -55,7 +60,7 @@
         <br />
         <button class="btn btn-primary" type="submit">Speichern</button>
         &nbsp;
-        <a href="/home" class="btn btn-primary">Close</a>
+        <a href="/tables" class="btn btn-primary">Close</a>
     </EditForm>
 }
 
@@ -68,9 +73,9 @@
     [SupplyParameterFromForm(FormName = "SubmitTableForm")]
     private TableModel? tableModel { get; set; }
 
-    private bool nameIsUnique;
+    private bool nameIsUnique = true;
 
-    protected override async Task OnParametersSetAsync()
+    protected override async Task OnInitializedAsync()
     {
         if (tableModel != null)
             return;
@@ -78,16 +83,18 @@
         if (Id == Guid.Empty)
         {
             tableModel = TableService.CreateNewTable();
+            Id = tableModel.Id;
         }
         else
         {
             tableModel = await TableService.GetTableByIdAsync(Id);
+            if (tableModel != null)
+                Id = tableModel.Id;
         }
     }
 
     private async Task OnSubmit()
     {
-
         if (tableModel == null)
             return;
 
@@ -95,11 +102,7 @@
         nameIsUnique = await TableService.IsTableNameUniqueAsync(tableModel.Name);
 
         if (!nameIsUnique)
-        {
-            await Task.Delay(2000);
-            nameIsUnique = false;
             return;
-        }
 
         await TableService.SaveTableAsync(tableModel);
         nav.NavigateTo("/tables");
