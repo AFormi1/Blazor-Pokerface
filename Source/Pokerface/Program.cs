@@ -8,10 +8,13 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
+builder.Services.AddSingleton<CardTemplateProvider>();
 builder.Services.AddSingleton<DbTableService>();
 builder.Services.AddSingleton<TableService>();
 
 var app = builder.Build();
+
+
 
 // Initialize databases during startup and create the default database if not exists (playground)
 using (var scope = app.Services.CreateScope())
@@ -20,6 +23,10 @@ using (var scope = app.Services.CreateScope())
     var tableDB = services.GetRequiredService<DbTableService>();
 
     tableDB.Init().Wait();
+
+    // Initialize CardTemplateProvider
+    var cardProvider = services.GetRequiredService<CardTemplateProvider>();
+    cardProvider.Initialize();
 }
 
 // Configure the HTTP request pipeline.

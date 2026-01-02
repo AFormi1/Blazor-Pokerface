@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+    xmlns="http://www.w3.org/2000/svg"
+    width="800"
+    height="500"
+    viewBox="0 0 800 500"
+    version="1.1"
+    id="PokerTableSVG">
+
+    <!-- Poker table felt -->
+    <rect
+        id="TableFelt"
+        x="20"
+        y="20"
+        width="760"
+        height="460"
+        rx="230"
+        ry="230"
+        fill="#1f7a1f"
+        stroke="#0b3d0b"
+        stroke-width="12" />
+
+    <!-- Felt highlight border -->
+    <rect
+        id="TableInnerBorder"
+        x="40"
+        y="40"
+        width="720"
+        height="420"
+        rx="210"
+        ry="210"
+        fill="none"
+        stroke="#2fa84f"
+        stroke-width="4"
+        opacity="0.6" />
+
+    <!-- Community card slots -->
+    <g
+        id="CommunityCards"
+        fill="none"
+        stroke="#eaeaea"
+        stroke-width="2">
+
+        <rect id="CardSlot1" x="245" y="215" width="50" height="75" rx="6" ry="6" />
+        <rect id="CardSlot2" x="305" y="215" width="50" height="75" rx="6" ry="6" />
+        <rect id="CardSlot3" x="365" y="215" width="50" height="75" rx="6" ry="6" />
+        <rect id="CardSlot4" x="425" y="215" width="50" height="75" rx="6" ry="6" />
+        <rect id="CardSlot5" x="485" y="215" width="50" height="75" rx="6" ry="6" />
+
+    </g>
+
+</svg>
