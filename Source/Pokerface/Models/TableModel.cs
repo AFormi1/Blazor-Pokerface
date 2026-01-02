@@ -5,8 +5,8 @@ namespace Pokerface.Models
 {
     public class TableModel
     {
-        [PrimaryKey, Unique]
-        public Guid Id { get; set; }
+        [PrimaryKey, Unique, AutoIncrement]
+        public int Id { get; set; }
 
         [Required(ErrorMessage = "Name darf nicht leer oder bereits verwendet sein")]
         public string Name { get; set; } = string.Empty;

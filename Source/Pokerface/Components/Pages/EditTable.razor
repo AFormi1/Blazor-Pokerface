@@ -1,8 +1,9 @@
-﻿@page "/settable"
-@page "/settable/{Id:guid}"
+﻿@page "/editable/"
+@page "/editable/{Id:int}"
 
 @inject NavigationManager nav
 @inject TableService TableService
+@inject IJSRuntime JS
 
 <h3>Tisch erstellen / bearbeiten</h3>
 
@@ -10,10 +11,18 @@
 
 @if (tableModel != null)
 {
-    <EditForm Model="tableModel" FormName="SubmitTableForm" OnValidSubmit="OnSubmit">
+    <EditForm Enhance="true" Model="tableModel" FormName="SubmitTableForm" OnValidSubmit="OnSubmit">
         <DataAnnotationsValidator />
 
-        <input type="hidden" name="Id" value="@tableModel.Id" />
+        <div class="row mb-3">
+            <div class="col-2">
+                <label class="col-form-label">Id:</label>
+            </div>
+            <div class="col-6">
+                <InputNumber @bind-Value="tableModel.Id" class="form-control" readonly />
+            </div>
+        </div>
+
 
         <div class="row mb-3">
             <div class="col-2">
@@ -33,7 +42,6 @@
                     }
                 </div>
             </div>
-
         </div>
 
         <div class="row mb-3">
@@ -52,13 +60,15 @@
             <div class="col-2">
                 <label class="col-form-label">Status:</label>
             </div>
-            <div class="col-6">
-                <input type="checkbox" checked="@tableModel.IsActive" disabled />
+            <div class="col-6 d-flex align-items-center">
+                <input type="checkbox" checked="@tableModel.IsActive" />
             </div>
         </div>
 
         <br />
         <button class="btn btn-primary" type="submit">Speichern</button>
+        &nbsp;
+        <button type="button" class="btn btn-warning" @onclick="DeleteTable">Löschen</button>
         &nbsp;
         <a href="/tables" class="btn btn-primary">Close</a>
     </EditForm>
@@ -68,7 +78,7 @@
 @code {
 
     [Parameter]
-    public Guid Id { get; set; }
+    public int Id { get; set; }
 
     [SupplyParameterFromForm(FormName = "SubmitTableForm")]
     private TableModel? tableModel { get; set; }
@@ -77,19 +87,12 @@
 
     protected override async Task OnInitializedAsync()
     {
-        if (tableModel != null)
-            return;
-
-        if (Id == Guid.Empty)
-        {
-            tableModel = TableService.CreateNewTable();
-            Id = tableModel.Id;
-        }
-        else
+        if (tableModel == null)
         {
             tableModel = await TableService.GetTableByIdAsync(Id);
-            if (tableModel != null)
-                Id = tableModel.Id;
+
+            if (tableModel == null)
+                tableModel = await TableService.CreateNewTableAsync();
         }
     }
 
@@ -99,13 +102,27 @@
             return;
 
         //check for a unique name
-        nameIsUnique = await TableService.IsTableNameUniqueAsync(tableModel.Name);
+        nameIsUnique = await TableService.IsTableNameUniqueAsync(tableModel.Id, tableModel.Name);
 
         if (!nameIsUnique)
             return;
-
+     
         await TableService.SaveTableAsync(tableModel);
         nav.NavigateTo("/tables");
     }
+
+    private async Task DeleteTable()
+    {
+        if (tableModel == null)
+            return;
+
+        bool confirmed = await JS.InvokeAsync<bool>("confirm", $"Tisch '{tableModel.Name}' wirklich löschen?");
+        if (!confirmed)
+            return;
+
+        await TableService.DeleteTableAsync(tableModel);
+        nav.NavigateTo("/tables");
+    }
+
 }
 

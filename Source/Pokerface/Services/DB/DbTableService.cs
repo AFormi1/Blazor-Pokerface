@@ -11,10 +11,11 @@ namespace Pokerface.Services.DB
         {
             await DataBase.Init<TableModel>();
         }
-            
+
+
         public async Task<List<TableModel>> GetItemsAsync() => await DataBase.GetItemsAsync<TableModel>();
 
-        public async Task<TableModel?> GetItemByIdAsync(Guid id)
+        public async Task<TableModel?> GetItemByIdAsync(int id)
         {
             return await DataBase.GetItemByPredicateAsync<TableModel>(u => u.Id == id);
         }
@@ -22,6 +23,7 @@ namespace Pokerface.Services.DB
         public async Task<int> SaveItemAsync(TableModel item) => await DataBase.SaveItemAsync(item, x => x.Id == item.Id);
 
         public async Task<int> DeleteItemAsync(TableModel item) => await DataBase.DeleteItemAsync<TableModel>(x => x.Id == item.Id);
+        public async Task<int> GetCountAsync() => await DataBase.GetCountAsync<TableModel>();
 
     }
 }
