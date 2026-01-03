@@ -8,7 +8,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
-builder.Services.AddSingleton<CardTemplateProvider>();
+builder.Services.AddSingleton<CardProvider>();
 builder.Services.AddSingleton<DbTableService>();
 builder.Services.AddSingleton<TableService>();
 
