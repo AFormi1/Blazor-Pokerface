@@ -1,13 +1,36 @@
 ﻿/* Full height wrapper */
 .gametable-wrapper {
+    position: relative; /* very important for absolute positioning of table and cards */
     display: flex;
-    flex-direction: column;
-    height: calc(100vh - 37px);
-    margin: 0rem;
-    background-image: url('/images/pokertable.svg');
-    background-size: 70% auto;
-    background-position: center;
+    justify-content: center; /* center table image */
+    align-items: center; /* center table image vertically */
+    width: 100%;
+    height: calc(100vh - 37px); /* full available height minus any fixed header/footer */
+    margin: 0;
+    overflow: hidden; /* prevents cards or image from spilling */
+}
+
+
+.gametable-image {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%); /* center the image */
+    width: 100%;
+    height: 100%;
+    object-fit: contain; /* scales image to fit container while maintaining aspect ratio */
+    z-index: 0;
+    pointer-events: none; /* so clicks go to cards above */
+}
+
+
+.poker-card {
+    position: absolute;
+    z-index: 1; /* on top of the table */
+    background-size: contain;
     background-repeat: no-repeat;
+    background-position: center;
+    cursor: pointer;
 }
 
 

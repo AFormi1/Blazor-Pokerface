@@ -3,17 +3,18 @@ using Pokerface.Services;
 
 public class PokerCardModel
 {
-    private readonly CardTemplateProvider _cardProvider;
+    private readonly CardProvider _cardProvider;
 
     public double WidthPercent { get; private set; }
     public double HeightPercent { get; private set; }
 
     public double LeftPercent { get; private set; }
     public double TopPercent { get; private set; }
+    public double Rotation { get; private set; }
 
     public string ImageUrl { get; private set; } = string.Empty;
 
-    public PokerCardModel(CardTemplateProvider cardProvider)
+    public PokerCardModel(CardProvider cardProvider)
     {
         _cardProvider = cardProvider;
     }
@@ -25,17 +26,27 @@ public class PokerCardModel
             : _cardProvider.GetBacksideSvg();
     }
 
-    public void Update(DomRect tableSize, double columnIndex, double rowIndex, int totalColumns, int totalRows)
+    public void UpdateForTableLayout(DomRect tableSize, EnumCardPositions tablePosition, bool ShowFront)
     {
-        if (tableSize.Width == 0 || tableSize.Height == 0)
+        if (!_cardProvider.Positions.TryGetValue(tablePosition, out var layout))
             return;
 
-        // Width and height as % of table
-        WidthPercent = 100.0 / totalColumns * 0.9;   // 90% of cell width
-        HeightPercent = 100.0 / totalRows * 0.9;     // 90% of cell height
+        double cardScaleFactor = 0.009;
+        double baseRatio = 363.0 / 543.0;
 
-        // Left and top as % of container
-        LeftPercent = (100.0 / totalColumns) * (columnIndex + 0.5); // center in cell
-        TopPercent = (100.0 / totalRows) * (rowIndex + 0.5);
+        // Compute the "base" card height and width relative to table size
+        // We can use the smaller dimension to keep cards proportional
+        double baseHeight = tableSize.Height * cardScaleFactor;
+        double baseWidth = baseHeight * baseRatio;
+
+        // Assign to card
+        WidthPercent = baseWidth;
+        HeightPercent = baseHeight;
+
+        LeftPercent = layout.X;
+        TopPercent = layout.Y;
+        Rotation = layout.Rotation;
     }
+
+
 }

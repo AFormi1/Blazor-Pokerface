@@ -10,14 +10,14 @@
 
 
 
-private string PositionStyle =>
-    Model == null
-        ? string.Empty
-        : $"position:absolute;" +
-          $"left:{Model.LeftPercent.ToString("F2", CultureInfo.InvariantCulture)}%; " +
-          $"top:{Model.TopPercent.ToString("F2", CultureInfo.InvariantCulture)}%; " +
-          $"width:{Model.WidthPercent.ToString("F2", CultureInfo.InvariantCulture)}%; " +
-          $"height:{Model.HeightPercent.ToString("F2", CultureInfo.InvariantCulture)}%; " +
-          "transform:translate(-50%, -50%);";
+    private string PositionStyle =>
+        Model == null
+            ? string.Empty
+            : $"position:absolute;" +
+              $"left:{Model.LeftPercent.ToString("F2", CultureInfo.InvariantCulture)}%; " +
+              $"top:{Model.TopPercent.ToString("F2", CultureInfo.InvariantCulture)}%; " +
+              $"width:{Model.WidthPercent.ToString("F2", CultureInfo.InvariantCulture)}%; " +
+              $"height:{Model.HeightPercent.ToString("F2", CultureInfo.InvariantCulture)}%; " +
+              $"transform:translate(-50%, -50%) rotate({Model.Rotation.ToString("F2", CultureInfo.InvariantCulture)}deg);";
 
 }
