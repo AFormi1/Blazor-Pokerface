@@ -23,10 +23,6 @@ using (var scope = app.Services.CreateScope())
     var tableDB = services.GetRequiredService<DbTableService>();
 
     tableDB.Init().Wait();
-
-    // Initialize CardTemplateProvider
-    var cardProvider = services.GetRequiredService<CardTemplateProvider>();
-    cardProvider.Initialize();
 }
 
 // Configure the HTTP request pipeline.

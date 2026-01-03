@@ -1,16 +1,7 @@
 ﻿.poker-card {
+    cursor: pointer;
     background-size: contain;
     background-repeat: no-repeat;
     background-position: center;
 }
 
-    .poker-card svg {
-        width: 100%;
-        height: 100%;
-        display: block;
-    }
-
-
-    .poker-card:hover svg {
-        transform: scale(1.5);
-    }

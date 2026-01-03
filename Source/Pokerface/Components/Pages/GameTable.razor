@@ -1,5 +1,6 @@
 ﻿@page "/joingametable/{Id:int}"
 
+@inject CardTemplateProvider CardProvider
 @inject NavigationManager nav
 @inject IJSRuntime JS
 
@@ -7,7 +8,10 @@
 <PageTitle>Game Table</PageTitle>
 
 <div class="gametable-wrapper" @ref="TableRef">
-    <PokerCard @ref="flop1" Rank="A" Suit="♠" ShowFront="false" />
+    @foreach (var cardModel in allCardModels)
+    {
+        <PokerCard Model="cardModel"/>
+    }
 </div>
 
 @code {
@@ -17,31 +21,56 @@
     private ElementReference TableRef;
     private DotNetObjectReference<GameTable>? dotNetRef;
 
-    private PokerCard? flop1;
+    private List<PokerCardModel> allCardModels = new();
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
         {
-            // initial sizing
+            // initial cards and sizing sizing           
             DomRect tableSize = await JS.InvokeAsync<DomRect>("getElementSize", TableRef);
-            if (flop1 != null) flop1.Position(tableSize, 50, 50);
 
-            // register resize callback
+            allCardModels = Enum.GetValues<EnumCardSuit>()
+                .SelectMany(suit =>
+                    Enum.GetValues<EnumCardRank>()
+                        .Select(rank =>
+                        {
+                            var model = new PokerCardModel(CardProvider);
+                            model.Init(suit, rank, true);
+                            return model;
+                        }))
+                .ToList();                           
+
+            // register resize callback for all cards  
             dotNetRef = DotNetObjectReference.Create(this);
             await JS.InvokeVoidAsync("registerResizeHandler", dotNetRef);
+
+            //Update all Cards one time
+            await OnWindowResize();
         }
     }
 
     [JSInvokable]
     public async Task OnWindowResize()
     {
-        // recalc table size
         DomRect tableSize = await JS.InvokeAsync<DomRect>("getElementSize", TableRef);
-        if (flop1 != null) flop1.Position(tableSize, 50, 50);
+
+        const int columns = 13;
+        const int rows = 4;
+
+        for (int i = 0; i < allCardModels.Count; i++)
+        {
+            int column = i % columns;
+            int row = i / columns;
+
+            allCardModels[i].Update(tableSize, column, row, columns, rows);
+        }
 
         StateHasChanged();
     }
+
+
+
 
     public async ValueTask DisposeAsync()
     {

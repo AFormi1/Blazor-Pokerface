@@ -1,38 +1,23 @@
-﻿@inject CardTemplateProvider CardProvider
+﻿@using System.Globalization;
 
-<div class="poker-card" style="@PositionStyle; background-image:url('@ImageUrl');"></div>
+@if (Model != null)
+{
+    <div class="poker-card" style="@PositionStyle; background-image:url('@Model.ImageUrl');"></div>
+}
 
 @code {
-    [Parameter] public string Rank { get; set; } = "A";
-    [Parameter] public string Suit { get; set; } = "♠";
-    [Parameter] public bool ShowFront { get; set; } = false;
+    [Parameter] public PokerCardModel? Model { get; set; }
 
-    [Parameter] public double Width { get; set; } = 150;
-    [Parameter] public double Height { get; set; } = 200;
-    [Parameter] public double LeftPercent { get; set; } = 50;
-    [Parameter] public double TopPercent { get; set; } = 50;
 
-    private string ImageUrl => ShowFront ? $"/images/cards/{Rank}_{Suit}.svg" : "/images/cards/standard_back.svg";
 
-    private string PositionStyle => $"position:absolute; left:{LeftPercent}%; top:{TopPercent}%; transform:translate(-50%, -50%); width:{Width}px; height:{Height}px;";
+private string PositionStyle =>
+    Model == null
+        ? string.Empty
+        : $"position:absolute;" +
+          $"left:{Model.LeftPercent.ToString("F2", CultureInfo.InvariantCulture)}%; " +
+          $"top:{Model.TopPercent.ToString("F2", CultureInfo.InvariantCulture)}%; " +
+          $"width:{Model.WidthPercent.ToString("F2", CultureInfo.InvariantCulture)}%; " +
+          $"height:{Model.HeightPercent.ToString("F2", CultureInfo.InvariantCulture)}%; " +
+          "transform:translate(-50%, -50%);";
 
-    public void Position(DomRect containerSize, double xPercent, double yPercent)
-    {
-        if (containerSize == null) return;
-
-        double widthScale = 0.042;
-
-        double horizontalOffset = 0.0;
-        double verticalOffset = 0.0;
-
-        // Calculate size based on container width
-        Width = (int)(Math.Round(containerSize.Width * widthScale, 0));   // widthScale = fraction of table width
-        Height = (int)(Math.Round(Width * 1.6, 0));                       // maintain 5:8 aspect ratio
-
-        // Update percentages
-        LeftPercent = (int)(Math.Round(xPercent + horizontalOffset, 0));
-        TopPercent = (int)(Math.Round(yPercent + verticalOffset, 0));
-
-        StateHasChanged(); // trigger rerender
-    }
 }
