@@ -7,6 +7,8 @@ namespace Pokerface.Models
     {
         public EventHandler? OnPlayerJoined;
 
+        public EventHandler? OnGameChanged;
+
         private readonly DbTableService? _dbTableService;
         public int Id { get; set; }
 
@@ -22,9 +24,9 @@ namespace Pokerface.Models
             _dbTableService = dbTableService;
         }
 
-        public PlayerModel? GetPlayerByName(string player)
+        public PlayerModel? GetPlayerById(int player)
         {
-            return Players.Where(p => p.Name == player).FirstOrDefault();
+            return Players.Where(p => p.Id == player).FirstOrDefault();
         }
 
         public async Task AddPlayer(PlayerModel player)
@@ -69,11 +71,13 @@ namespace Pokerface.Models
             //give every player two cards
             foreach (var player in Players)
             {
-                player.Card1 = new(CardSet[0], false);
+                player.Card1.SetCard(CardSet[0], true);
                 CardSet.RemoveAt(0);
-                player.Card2 = new(CardSet[0], false);
+                player.Card2.SetCard(CardSet[0], true);
                 CardSet.RemoveAt(0);   
             }
+
+            OnGameChanged?.Invoke(this, EventArgs.Empty);
         }
 
         public void ExitGame()

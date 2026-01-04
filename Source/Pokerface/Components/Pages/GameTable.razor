@@ -1,4 +1,4 @@
-﻿@page "/joingametable/{SessionId:int}_{PlayerName}"
+﻿@page "/joingametable/{SessionId:int}_{PlayerID:int}"
 
 @inject NavigationManager Nav
 @inject GameSessionService SessionService
@@ -109,8 +109,9 @@
 @code {
     [Parameter]
     public int SessionId { get; set; }
+
     [Parameter]
-    public string? PlayerName { get; set; }
+    public int PlayerID { get; set; }
 
     private GameSessionModel? Session { get; set; }
 
@@ -152,13 +153,14 @@
     {
         Session = SessionService.GetGameSessionById(SessionId);
 
-        if (Session == null || string.IsNullOrWhiteSpace(PlayerName))
+        if (Session == null)
             return;
 
         //Add a event listener, to detect when other players are joinung
         Session.OnPlayerJoined += Session_OnPlayerJoined;
+        Session.OnGameChanged += Session_OnGameChanged;
 
-        Me = Session.GetPlayerByName(PlayerName);
+        Me = Session.GetPlayerById(PlayerID);
         if (Me == null)
             return;
 
@@ -193,6 +195,11 @@
         });
     }
 
+    private void Session_OnGameChanged(object? sender, EventArgs e)
+    {
+       StateHasChanged();
+    }
+
 
     private void MapPlayerCards()
     {
@@ -221,7 +228,10 @@
 
     private async Task StartGame()
     {
+        if (Session == null)
+            return;
 
+        Session.StartGame();
     }
 
 

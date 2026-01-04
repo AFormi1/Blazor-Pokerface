@@ -6,6 +6,7 @@ namespace Pokerface.Models
     public class PlayerModel
     {      
 
+        public int Id { get; set; }
         public int Chair { get; set; }
         public string Name { get; set; } = string.Empty;              
         public PokerCardModel Card1 { get; set; } = new ();
@@ -13,6 +14,11 @@ namespace Pokerface.Models
 
         public PlayerModel(int chair, string name)
         {
+            Id = Guid.NewGuid().GetHashCode();
+
+            if (Id < 0)
+                Id *= -1;
+
             Chair = chair;
             Name = name;
         }

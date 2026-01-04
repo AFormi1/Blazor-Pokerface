@@ -24,7 +24,8 @@
     private bool _visible = false;
     private TaskCompletionSource<string?>? _tcs;
 
-    [Parameter] public string PlayerName { get; set; } = "Player";
+    [Parameter]
+    public string PlayerName { get; set; } = $"Player_{(uint)Guid.NewGuid().GetHashCode()}";
 
     /// <summary>
     /// Opens the dialog and waits for user input. Returns the player name if OK, or null if canceled.
