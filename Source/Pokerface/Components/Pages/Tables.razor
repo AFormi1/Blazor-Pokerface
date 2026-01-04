@@ -86,15 +86,15 @@
             return;
         }
 
-        GameSessionModel? sessionModel = await sessionService.JoinGameSessionAsync(table, userName.Trim());
+        int? playerId = await sessionService.JoinGameSessionAsync(table, userName.Trim());
 
-        if (sessionModel == null)
+        if (playerId == null)
         {
             await msgBox.ShowAsync("Beitritt nicht möglich", "Spielername bereits vorhanden!");
             return;
         }
 
-        Nav.NavigateTo($"/joingametable/{table.Id}_{userName}");
+        Nav.NavigateTo($"/joingametable/{table.Id}_{playerId}");
     }
 
 

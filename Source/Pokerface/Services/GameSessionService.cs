@@ -21,7 +21,7 @@ namespace Pokerface.Services
         }
  
 
-        public async Task<GameSessionModel?> JoinGameSessionAsync(TableModel table, string playerName)
+        public async Task<int?> JoinGameSessionAsync(TableModel table, string playerName)
         {
             // Try to find an existing session for the table
             GameSessionModel? session = GameSessions
@@ -51,9 +51,10 @@ namespace Pokerface.Services
             }
 
             // Add the player
-            await session.AddPlayer(new PlayerModel(session.GameTable.CurrentUsers + 1, playerName));
+            PlayerModel player = new PlayerModel(session.GameTable.CurrentUsers + 1, playerName);
+            await session.AddPlayer(player);
 
-            return session;
+            return player.Id;
         }
 
     }
