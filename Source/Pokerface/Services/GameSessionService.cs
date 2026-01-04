@@ -7,6 +7,8 @@ namespace Pokerface.Services
     {
         private readonly DbTableService _tableService;
 
+        public EventHandler<TableModel>? CurrentTableUsersChanged;
+
         public List<GameSessionModel> GameSessions { get; set; } = new List<GameSessionModel>();
 
         public GameSessionService(DbTableService tableService)
@@ -18,7 +20,7 @@ namespace Pokerface.Services
         {
             return GameSessions.FirstOrDefault(s => s.Id == sessionId);
         }
- 
+
 
         public async Task<int?> JoinGameSessionAsync(TableModel table, string playerName)
         {
@@ -53,7 +55,33 @@ namespace Pokerface.Services
             PlayerModel player = new PlayerModel(session.GameTable.CurrentUsers + 1, playerName);
             await session.AddPlayer(player);
 
+            CurrentTableUsersChanged?.Invoke(this, session.GameTable);
+
             return player.Id;
+        }
+
+
+        public async Task RemovePlayerFromSessionAsync(GameSessionModel session, PlayerModel player)
+        {
+            await session.RemovePlayer(player);
+
+            CurrentTableUsersChanged?.Invoke(this, session.GameTable);
+
+            // If no players left, remove the session
+            if (session.Players.Count == 0)
+                RemoveSession(session);
+        }
+
+        public void RemoveSession(GameSessionModel session)
+        {
+            if (session == null)
+                return;
+
+            GameSessions.Remove(session);
+
+            // optionally: clear its lists to free memory faster
+            session.Players.Clear();
+            session.CardSet?.Clear();
         }
 
     }

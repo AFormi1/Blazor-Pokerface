@@ -99,7 +99,7 @@
     </div>
 
     <div class="table-actions-overlay">
-        <button class="btn btn-primary" @onclick="StartGame">Starte Spiel</button>
+        <button class="btn btn-primary" @onclick="StartGame" disabled="@Session?.GameLocked">Starte Spiel</button>
         <button class="btn btn-primary" @onclick="ExitGame">Verlassen</button>
     </div>
 </div>
@@ -245,7 +245,11 @@
     private async Task ExitGame()
     {
         if (Session != null && Me != null)
-            await Session.RemovePlayer(Me);
+        {
+            Session.OnPlayerJoined -= Session_OnPlayerJoined;
+            Session.OnGameChanged -= Session_OnGameChanged;
+            await SessionService.RemovePlayerFromSessionAsync(Session, Me);
+        }
 
         Nav.NavigateTo($"/tables");
     }

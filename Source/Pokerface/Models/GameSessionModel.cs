@@ -5,11 +5,13 @@ namespace Pokerface.Models
 {
     public class GameSessionModel
     {
-        public EventHandler? OnPlayerJoined;
+        private readonly DbTableService? _dbTableService;
 
+        public EventHandler? OnPlayerJoined;
         public EventHandler? OnGameChanged;
 
-        private readonly DbTableService? _dbTableService;
+        public bool GameLocked { get; set; }
+
         public int Id { get; set; }
 
         public TableModel GameTable { get; set; } = new TableModel();
@@ -58,12 +60,13 @@ namespace Pokerface.Models
             GameTable.CurrentUsers = Players.Count;
 
             //Update the TableModel in DB
-            await _dbTableService.SaveItemAsync(GameTable);
+            await _dbTableService.SaveItemAsync(GameTable);           
 
             OnPlayerJoined?.Invoke(this, EventArgs.Empty);
 
             //if players is zero, close the game session ???
-
+            if (GameTable.CurrentUsers == 0)  
+                GameLocked = false;
         }
 
         public void StartGame()
@@ -78,6 +81,8 @@ namespace Pokerface.Models
                 player.Card2 = CardSet[0];
                 CardSet.RemoveAt(0);   
             }
+
+            GameLocked = true;
 
             OnGameChanged?.Invoke(this, EventArgs.Empty);
         }
