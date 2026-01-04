@@ -7,14 +7,14 @@
 <PageTitle>Game Table</PageTitle>
 
 <div class="gametable-wrapper">
-    <img class="gametable-image"
-         src="/images/pokertable.svg"
-         @ref="TableImageRef" />
+
+    <object id="svgObj" data="images/pokertable.svg" type="image/svg+xml" @ref="TableImageRef"></object>
 
     @foreach (var cardModel in allCardModels)
     {
         <PokerCard Model="cardModel" />
     }
+
 </div>
 
 @code {
@@ -42,48 +42,61 @@
                         return model;
                     }))
             .ToList();
-
-        // Wait until SVG image is really rendered
-        await WaitForTableImage();
-
+               
         // Register resize callback
         dotNetRef = DotNetObjectReference.Create(this);
-        await JS.InvokeVoidAsync("registerResizeHandler", dotNetRef);
+
+        // Register SVG load callback
+        await JS.InvokeVoidAsync(
+            "registerSvgLoadCallback",
+            TableImageRef,
+            dotNetRef
+        );
 
         // Initial layout
         await OnWindowResize();
     }
+      
 
-    private async Task WaitForTableImage()
-    {
-        DomRect rect;
-
-        do
+    private static readonly string[] CardElementIds =
         {
-            await Task.Delay(50);
-            rect = await JS.InvokeAsync<DomRect>(
-                "getRenderedImageRect",
-                TableImageRef);
-        }
-        while (rect.Width == 0 || rect.Height == 0);
+            "f1", "f2", "f3", "turn", "river",
+            "p11","p12","p21","p22","p31","p32",
+            "p41","p42","p51","p52","p61","p62",
+            "p71","p72","p81","p82"
+        };
+
+    [JSInvokable]
+    public async Task OnSvgLoaded()
+    {
+        // Register resize AFTER SVG exists
+        await JS.InvokeVoidAsync(
+            "registerResizeHandler",
+            dotNetRef
+        );
+
+        // Initial layout pass
+        await OnWindowResize();
     }
 
     [JSInvokable]
     public async Task OnWindowResize()
     {
-        DomRect tableRect = await JS.InvokeAsync<DomRect>(
-            "getRenderedImageRect",
-            TableImageRef);
+        var rects = await JS.InvokeAsync<Dictionary<string, DomRect>>(
+                "getSvgElementRects",
+                TableImageRef,
+                CardElementIds
+            );
 
-        if (tableRect.Width == 0 || tableRect.Height == 0)
-            return;
+        // if (tableRect.Width == 0 || tableRect.Height == 0)
+        //     return;
 
-        // TEST: place community Cards
-        allCardModels[0].UpdateForTableLayout(tableRect, EnumCardPositions.Flop1, true);
-        allCardModels[1].UpdateForTableLayout(tableRect, EnumCardPositions.Flop2, true);
-        allCardModels[2].UpdateForTableLayout(tableRect, EnumCardPositions.Flop3, true);
-        allCardModels[3].UpdateForTableLayout(tableRect, EnumCardPositions.Turn, true);
-        allCardModels[4].UpdateForTableLayout(tableRect, EnumCardPositions.River, true);
+        // // TEST: place community Cards
+        // allCardModels[0].UpdateForTableLayout(tableRect, EnumCardPositions.Flop1, true);
+        // allCardModels[1].UpdateForTableLayout(tableRect, EnumCardPositions.Flop2, true);
+        // allCardModels[2].UpdateForTableLayout(tableRect, EnumCardPositions.Flop3, true);
+        // allCardModels[3].UpdateForTableLayout(tableRect, EnumCardPositions.Turn, true);
+        // allCardModels[4].UpdateForTableLayout(tableRect, EnumCardPositions.River, true);
         
 
         // Later: loop all cards here
