@@ -105,7 +105,6 @@
 </div>
 
 
-
 @code {
     [Parameter]
     public int SessionId { get; set; }
@@ -171,9 +170,7 @@
                 chair => Session.Players.FirstOrDefault(p => p.Chair == chair)
             );
 
-        // Map hole cards for all chairs
         MapPlayerCards();
-
     }
 
     private void Session_OnPlayerJoined(object? sender, EventArgs e)
@@ -197,7 +194,12 @@
 
     private void Session_OnGameChanged(object? sender, EventArgs e)
     {
-       StateHasChanged();
+        InvokeAsync(() =>
+        {
+            MapPlayerCards();
+            StateHasChanged();
+        });
+
     }
 
 
@@ -209,8 +211,13 @@
             if (player == null)
                 continue;
 
-            PokerCardModel c1 = player.Card1;
-            PokerCardModel c2 = player.Card2;
+            if (Me == null)
+                return;
+
+            bool itsMe = Me == player;
+
+            PokerCardModel c1 = player.Card1 != null ? new PokerCardModel(player.Card1, itsMe) : new PokerCardModel();
+            PokerCardModel c2 = player.Card2 != null ? new PokerCardModel(player.Card2, itsMe) : new PokerCardModel();
 
             switch (chair)
             {
