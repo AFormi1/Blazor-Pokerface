@@ -5,6 +5,8 @@ namespace Pokerface.Models
 {
     public class GameSessionModel
     {
+        public EventHandler? OnPlayerJoined;
+
         private readonly DbTableService? _dbTableService;
         public int Id { get; set; }
 
@@ -40,6 +42,26 @@ namespace Pokerface.Models
             //Update the TableModel in DB
             await _dbTableService.SaveItemAsync(GameTable);
 
+            OnPlayerJoined?.Invoke(this, EventArgs.Empty);
+
+        }
+
+        public async Task RemovePlayer(PlayerModel player)
+        {
+            if (_dbTableService == null)
+                throw new ArgumentNullException("_dbTableService is null");
+
+            Players.Remove(player);
+
+            GameTable.CurrentUsers = Players.Count;
+
+            //Update the TableModel in DB
+            await _dbTableService.SaveItemAsync(GameTable);
+
+            OnPlayerJoined?.Invoke(this, EventArgs.Empty);
+
+            //if players is zero, close the game session ???
+
         }
 
         public void StartGame()
@@ -47,11 +69,17 @@ namespace Pokerface.Models
             //give every player two cards
             foreach (var player in Players)
             {
-                player.Card1 = new(CardSet[0]);
+                player.Card1 = new(CardSet[0], false);
                 CardSet.RemoveAt(0);
-                player.Card2 = new(CardSet[0]);
+                player.Card2 = new(CardSet[0], false);
                 CardSet.RemoveAt(0);   
             }
+        }
+
+        public void ExitGame()
+        {
+            //Todo... handle what should happen ...
+            ////if players is zero, close the game session ???
         }
 
     }

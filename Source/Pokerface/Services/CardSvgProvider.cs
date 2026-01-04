@@ -7,7 +7,7 @@ namespace Pokerface.Services
      
         public static string GetBacksideSvg() => "images/cards/backside.svg";
 
-        public static string GetFrontsideSvg(EnumCardRank rank, EnumCardSuit suit)
+        public static string GetFrontsideSvg(EnumCardSuit suit, EnumCardRank rank)
             => $"images/cards/{suit}_{rank}.svg";
     }
 }
