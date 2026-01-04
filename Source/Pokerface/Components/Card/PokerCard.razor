@@ -8,16 +8,14 @@
 @code {
     [Parameter] public PokerCardModel? Model { get; set; }
 
-
-
     private string PositionStyle =>
         Model == null
             ? string.Empty
             : $"position:absolute;" +
-              $"left:{Model.LeftPercent.ToString("F2", CultureInfo.InvariantCulture)}%; " +
-              $"top:{Model.TopPercent.ToString("F2", CultureInfo.InvariantCulture)}%; " +
-              $"width:{Model.WidthPercent.ToString("F2", CultureInfo.InvariantCulture)}%; " +
-              $"height:{Model.HeightPercent.ToString("F2", CultureInfo.InvariantCulture)}%; " +
-              $"transform:translate(-50%, -50%) rotate({Model.Rotation.ToString("F2", CultureInfo.InvariantCulture)}deg);";
+              $"left:{Model.X.ToString("F2", CultureInfo.InvariantCulture)}px; " +
+              $"top:{Model.Y.ToString("F2", CultureInfo.InvariantCulture)}px; " +
+              $"width:{Model.Width.ToString("F2", CultureInfo.InvariantCulture)}px; " +
+              $"height:{Model.Height.ToString("F2", CultureInfo.InvariantCulture)}px; " +
+              $"transform:translate(-50%, -50%) rotate({Model.Rot.ToString("F2", CultureInfo.InvariantCulture)}deg);";
 
 }

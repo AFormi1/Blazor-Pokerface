@@ -1,19 +1,25 @@
-﻿/* Full height wrapper */
-.gametable-wrapper {
+﻿.gametable-wrapper {
     position: relative;
     width: 100%;
     height: calc(100vh - 37px);
+    padding: 20px; /* keeps space around table */
+    box-sizing: border-box;
+    display: flex;
+    justify-content: center;
+    align-items: center;
     overflow: hidden;
 }
 
 #svgObj {
-    position: absolute;
-    inset: 0; /* replaces top/left/width/height */
-    margin: auto;
+    position: absolute; /* fill wrapper but scaled via object-fit */
+    top: 0;
+    left: 0;
+    bottom: 0;
+    right: 0;
     width: 100%;
     height: 100%;
-    object-fit: contain;
-    z-index: 0;
+    object-fit: contain; /* scales to fill wrapper while keeping aspect ratio */
+    display: block;
     pointer-events: none;
+    /*background-color: rgba(0,0,255,0.2);*/ /* debug */
 }
-

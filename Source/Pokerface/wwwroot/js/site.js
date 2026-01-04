@@ -16,7 +16,7 @@ window.registerResizeHandler = (dotNetRef) => {
         clearTimeout(resizeTimer);
         resizeTimer = setTimeout(() => {
             dotNetRef.invokeMethodAsync("OnWindowResize");
-        }, 50);
+        });
     });
 };
 
