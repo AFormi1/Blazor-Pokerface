@@ -1,6 +1,6 @@
 ﻿@page "/joingametable/{SessionId:int}_{PlayerName}"
 
-@inject NavigationManager nav
+@inject NavigationManager Nav
 @inject GameSessionService SessionService
 @inject IJSRuntime JS
 
@@ -97,6 +97,11 @@
         </div>
 
     </div>
+
+    <div class="table-actions-overlay">
+        <button class="btn btn-primary" @onclick="StartGame">Starte Spiel</button>
+        <button class="btn btn-primary" @onclick="ExitGame">Verlassen</button>
+    </div>
 </div>
 
 
@@ -112,8 +117,11 @@
     private PlayerModel? Me;
     private Dictionary<int, PlayerModel?> PlayersByChair = new();
 
+    #region UI elements
+
     private ElementReference TableImageRef;
     private DotNetObjectReference<GameTable>? dotNetRef;
+
 
     private PokerCardModel Card_P11 = new();
     private PokerCardModel Card_P12 = new();
@@ -138,11 +146,17 @@
     private PokerCardModel Card_C4 = new();
     private PokerCardModel Card_C5 = new();
 
+    #endregion
+
     protected override void OnInitialized()
     {
         Session = SessionService.GetGameSessionById(SessionId);
+
         if (Session == null || string.IsNullOrWhiteSpace(PlayerName))
             return;
+
+        //Add a event listener, to detect when other players are joinung
+        Session.OnPlayerJoined += Session_OnPlayerJoined;
 
         Me = Session.GetPlayerByName(PlayerName);
         if (Me == null)
@@ -160,6 +174,24 @@
 
     }
 
+    private void Session_OnPlayerJoined(object? sender, EventArgs e)
+    {
+        InvokeAsync(() =>
+        {
+            // Rebuild chair lookup
+            PlayersByChair = Enumerable.Range(1, 8)
+                .ToDictionary(
+                    chair => chair,
+                    chair => Session!.Players.FirstOrDefault(p => p.Chair == chair)
+                );
+
+            // Update cards
+            MapPlayerCards();
+
+            // Trigger UI refresh
+            StateHasChanged();
+        });
+    }
 
 
     private void MapPlayerCards()
@@ -186,6 +218,22 @@
             }
         }
     }
+
+    private async Task StartGame()
+    {
+
+    }
+
+
+    private async Task ExitGame()
+    {
+        if (Session != null && Me != null)
+            await Session.RemovePlayer(Me);
+
+        Nav.NavigateTo($"/tables");
+    }
+
+
 
 
 }

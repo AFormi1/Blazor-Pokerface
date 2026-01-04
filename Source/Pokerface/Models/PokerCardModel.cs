@@ -7,6 +7,7 @@ namespace Pokerface.Models
           
         public string ImageUrl { get; private set; } = string.Empty;
         public bool IsVisible { get; private set; }
+        public bool ShowFace { get; set; }
         public EnumCardSuit Suit { get; private set; }
         public EnumCardRank Rank { get; private set; }
 
@@ -17,9 +18,12 @@ namespace Pokerface.Models
         }
 
         //Constructor for new GamePlay
-        public PokerCardModel(Card card)
+        public PokerCardModel(Card card, bool showFace)
         {
-            ImageUrl = CardSvgProvider.GetBacksideSvg();
+            Suit = card.Suit;
+            Rank = card.Rank;
+            ShowFace = showFace;
+            ImageUrl = ShowFace ? CardSvgProvider.GetFrontsideSvg(Suit, Rank) : CardSvgProvider.GetBacksideSvg();
         }
 
 

@@ -128,3 +128,23 @@
     overflow: visible; 
     position: relative;
 }
+
+
+.table-actions-overlay {
+    position: absolute;
+    bottom: 20px;
+    right: 20px;
+    display: flex;
+    flex-direction: column; /* vertical */
+    gap: 10px;
+    z-index: 50;
+}
+
+    .table-actions-overlay button {
+        width: 160px; /* same width */
+        height: 44px; /* same height */
+
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
