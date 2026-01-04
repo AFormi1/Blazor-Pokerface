@@ -20,6 +20,11 @@ namespace Pokerface.Models
             _dbTableService = dbTableService;
         }
 
+        public PlayerModel? GetPlayerByName(string player)
+        {
+            return Players.Where(p => p.Name == player).FirstOrDefault();
+        }
+
         public async Task AddPlayer(PlayerModel player)
         {
             if (_dbTableService == null)

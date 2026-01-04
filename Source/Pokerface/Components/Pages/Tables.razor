@@ -57,7 +57,7 @@
 </div>
 
 @* Popup for Join Session *@
-<PlayerInput @ref="msgPlayerName"/>
+<PlayerInput @ref="msgPlayerName" />
 <MessageBox @ref="msgBox" />
 
 @code {
@@ -78,12 +78,15 @@
         if (msgPlayerName == null || msgBox == null)
             return; // do nothing if inactive
 
-        string? UserName = await msgPlayerName.ShowAsync();
+        string? userName = await msgPlayerName.ShowAsync();
 
-        if (string.IsNullOrWhiteSpace(UserName))
-            return; 
+        if (string.IsNullOrWhiteSpace(userName))
+        {
+            await msgBox.ShowAsync("Beitritt nicht möglich", "Spielername darf nicht leer sein!");
+            return;
+        }
 
-        GameSessionModel? sessionModel = await sessionService.JoinGameSessionAsync(table, UserName.Trim());
+        GameSessionModel? sessionModel = await sessionService.JoinGameSessionAsync(table, userName.Trim());
 
         if (sessionModel == null)
         {
@@ -91,7 +94,7 @@
             return;
         }
 
-        Nav.NavigateTo($"/joingametable/{table.Id}");
+        Nav.NavigateTo($"/joingametable/{table.Id}_{userName}");
     }
 
 

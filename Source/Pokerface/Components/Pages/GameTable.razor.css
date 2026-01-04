@@ -61,16 +61,43 @@
     align-items: center;
 }
 
+/* Container stacks label above cards */
+.player-container-vertical {
+    display: flex;
+    flex-direction: column;
+    align-items: center; /* center horizontally */
+    justify-content: center; /* center content vertically in container */
+    height: 100%; /* fill parent container height */
+}
+
+.player-container-horizontal {
+    display: flex;
+    flex-direction: column;
+    align-items: center; /* center horizontally */
+    justify-content: center; /* center content vertically in container */
+    height: 100%; /* fill parent container height */
+}
+
+/* Player name styling */
+.player-label {
+    color: white;
+    font-weight: bold;
+    font-size: 1rem;
+    text-align: center;
+    white-space: nowrap;
+}
+
+/* Pair of cards side by side */
 .player-pair {
     display: flex;
-    height: 100%;
-    gap: 1rem; 
+    gap: 1rem;
 }
+
 
 .player-pair-horizontal-left {
     position: absolute;
     top: 50%;
-    left: 1%;
+    left: 0%;
     transform: translateY(-50%) rotate(-90deg);
     display: flex;
     gap: 1rem;
@@ -81,7 +108,7 @@
 .player-pair-horizontal-right {
     position: absolute;
     top: 50%;
-    right: 1%; 
+    right: 0%; 
     transform: translateY(-50%) rotate(90deg); 
     display: flex;
     gap: 1rem;
@@ -90,7 +117,7 @@
 }
 
 .card-spot {
-    height: 100%;
+    height: 150px;
     padding: 2px;
     aspect-ratio: 363 / 543;
     border-radius: 10px;
