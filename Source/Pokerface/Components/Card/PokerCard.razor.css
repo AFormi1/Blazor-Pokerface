@@ -1,8 +1,8 @@
 ﻿.poker-card {
-    cursor: pointer;
-    position: absolute;
-    z-index: 1; /* on top of table */
-    background-size: contain; /* maintain card ratio */
+    width: 100%;
+    height: 100%;
+    background-size: contain;
     background-repeat: no-repeat;
     background-position: center;
+    border-radius: 10px;
 }

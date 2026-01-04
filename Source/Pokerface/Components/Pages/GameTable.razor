@@ -1,21 +1,77 @@
 ﻿@page "/joingametable/{Id:int}"
 
-@inject CardProvider CardProvider
+@inject CardSvgProvider CardSvgProvider
 @inject NavigationManager nav
 @inject IJSRuntime JS
 
 <PageTitle>Game Table</PageTitle>
 
 <div class="gametable-wrapper">
+    <div class="poker-table">
 
-    <object id="svgObj" data="images/pokertable.svg" type="image/svg+xml" @ref="TableImageRef"></object>
+        <!-- Community cards -->
+        <div class="community-cards">
+            <div class="card-spot"><PokerCard Model="Card_C1"/></div>
+            <div class="card-spot"><PokerCard Model="Card_C2"/></div>
+            <div class="card-spot"><PokerCard Model="Card_C3"/></div>
+            <div class="card-spot"><PokerCard Model="Card_C4"/></div>
+            <div class="card-spot"><PokerCard Model="Card_C5"/></div>
+        </div>
 
-    @foreach (var cardModel in allCardModels)
-    {
-        <PokerCard Model="cardModel" />
-    }
+        <!-- Top players cards grouped pairwise -->
+        <div class="players-top">
+            <!-- Player 1 -->
+            <div class="player-pair">
+                <div class="card-spot"><PokerCard Model="Card_P11"/></div>
+                <div class="card-spot"><PokerCard Model="Card_P12"/></div>
+            </div>
+            <!-- Player 2 -->
+            <div class="player-pair">
+                <div class="card-spot"><PokerCard Model="Card_P21" /></div>
+                <div class="card-spot"><PokerCard Model="Card_P22" /></div>
+            </div>
+            <!-- Player 3 -->
+            <div class="player-pair">
+                <div class="card-spot"><PokerCard Model="Card_P31" /></div>
+                <div class="card-spot"><PokerCard Model="Card_P32" /></div>
+            </div>
+        </div>
 
+        <!-- Bottom players cards grouped pairwise -->
+        <div class="players-bottom">
+            <!-- Player 7 -->
+            <div class="player-pair">
+                <div class="card-spot"><PokerCard Model="Card_P41" /></div>
+                <div class="card-spot"><PokerCard Model="Card_P42" /></div>
+            </div>
+            <!-- Player 6 -->
+            <div class="player-pair">
+                <div class="card-spot"><PokerCard Model="Card_P51" /></div>
+                <div class="card-spot"><PokerCard Model="Card_P52" /></div>
+            </div>
+            <!-- Player 5 -->
+            <div class="player-pair">
+                <div class="card-spot"><PokerCard Model="Card_P61" /></div>
+                <div class="card-spot"><PokerCard Model="Card_P62" /></div>
+            </div>
+        </div>
+
+        <!-- Player 4 -->
+        <div class="player-pair-horizontal-left">
+            <div class="card-spot"><PokerCard Model="Card_P71" /></div>
+            <div class="card-spot"><PokerCard Model="Card_P72" /></div>
+        </div>
+
+        <!-- Player 8 -->
+        <div class="player-pair-horizontal-right">
+            <div class="card-spot"><PokerCard Model="Card_P81" /></div>
+            <div class="card-spot"><PokerCard Model="Card_P82" /></div>
+        </div>
+
+    </div>
 </div>
+
+
 
 @code {
     [Parameter]
@@ -24,84 +80,55 @@
     private ElementReference TableImageRef;
     private DotNetObjectReference<GameTable>? dotNetRef;
 
-    private List<PokerCardModel> allCardModels = new();
+    private PokerCardModel Card_P11 = new();
+    private PokerCardModel Card_P12 = new();
+    private PokerCardModel Card_P21 = new();
+    private PokerCardModel Card_P22 = new();
+    private PokerCardModel Card_P31 = new();
+    private PokerCardModel Card_P32 = new();
+    private PokerCardModel Card_P41 = new();
+    private PokerCardModel Card_P42 = new();
+    private PokerCardModel Card_P51 = new();
+    private PokerCardModel Card_P52 = new();
+    private PokerCardModel Card_P61 = new();
+    private PokerCardModel Card_P62 = new();
+    private PokerCardModel Card_P71 = new();
+    private PokerCardModel Card_P72 = new();
+    private PokerCardModel Card_P81 = new();
+    private PokerCardModel Card_P82 = new();
 
-    protected override async Task OnAfterRenderAsync(bool firstRender)
+    private PokerCardModel Card_C1 = new();
+    private PokerCardModel Card_C2 = new();
+    private PokerCardModel Card_C3 = new();
+    private PokerCardModel Card_C4 = new();
+    private PokerCardModel Card_C5 = new();
+
+
+    protected override void OnInitialized()
     {
-        if (!firstRender)
-            return;
+        Card_P11 = new(CardSvgProvider);
+        Card_P12 = new(CardSvgProvider);
+        Card_P21 = new(CardSvgProvider);
+        Card_P22 = new(CardSvgProvider);
+        Card_P31 = new(CardSvgProvider);
+        Card_P32 = new(CardSvgProvider);
+        Card_P41 = new(CardSvgProvider);
+        Card_P42 = new(CardSvgProvider);
+        Card_P51 = new(CardSvgProvider);
+        Card_P52 = new(CardSvgProvider);
+        Card_P61 = new(CardSvgProvider);
+        Card_P62 = new(CardSvgProvider);
+        Card_P71 = new(CardSvgProvider);
+        Card_P72 = new(CardSvgProvider);
+        Card_P81 = new(CardSvgProvider);
+        Card_P82 = new(CardSvgProvider);
 
-        // Create cards once
-        allCardModels = Enum.GetValues<EnumCardSuit>()
-            .SelectMany(suit =>
-                Enum.GetValues<EnumCardRank>()
-                    .Select(rank =>
-                    {
-                        var model = new PokerCardModel(CardProvider);
-                        model.Init(suit, rank, true);
-                        return model;
-                    }))
-            .ToList();
+        Card_C1 = new(CardSvgProvider);
+        Card_C2 = new(CardSvgProvider);
+        Card_C3 = new(CardSvgProvider);
+        Card_C4 = new(CardSvgProvider);
+        Card_C5 = new(CardSvgProvider);
 
-        // Register resize callback
-        dotNetRef = DotNetObjectReference.Create(this);
-
-        // Register SVG load callback
-        await JS.InvokeVoidAsync(
-            "registerSvgLoadCallback",
-            TableImageRef,
-            dotNetRef
-        );
-
-        // Initial layout
-        await OnWindowResize();
     }
 
-
-
-
-    [JSInvokable]
-    public async Task OnSvgLoaded()
-    {
-        // Register resize AFTER SVG exists
-        await JS.InvokeVoidAsync(
-            "registerResizeHandler",
-            dotNetRef
-        );
-
-        // Initial layout pass
-        await OnWindowResize();
-    }
-
-    [JSInvokable]
-    public async Task OnWindowResize()
-    {
-        var rects = await JS.InvokeAsync<Dictionary<string, DomRect>>(
-            "getSvgElementRects",
-            TableImageRef,
-            CardProvider.CardElementIds
-        );
-
-        if (rects == null)
-            return;
-
-        // update provider
-        CardProvider.SetCardRects(rects);
-
-        // update all cards
-        for (int i = 0; i < CardProvider.CardRects.Count; i++)
-        {
-            var card = allCardModels[i];
-            var position = CardProvider.SvgIdToEnumMap.Values.ElementAt(i); // map enum by index
-            card.Update(CardProvider, position);
-        }
-
-        StateHasChanged();
-    }
-
-
-    public async ValueTask DisposeAsync()
-    {
-        dotNetRef?.Dispose();
-    }
 }
