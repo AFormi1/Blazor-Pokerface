@@ -1,0 +1,51 @@
+﻿@implements IDisposable
+
+@if (_visible)
+{
+    <div class="msgbox-backdrop">
+        <div class="msgbox-container">
+            <div class="msgbox-header">@_title</div>
+            <div class="msgbox-body">@_message</div>
+            <div class="msgbox-footer">
+                <button class="btn btn-primary" @onclick="Close">OK</button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+
+    private string _title = "";
+    private string _message = "";
+    private bool _visible = false;
+    private TaskCompletionSource<bool>? _tcs;
+
+    /// <summary>
+    /// Opens the message box with the given text and awaits until the user clicks OK.
+    /// </summary>
+    public async Task ShowAsync(string title, string message)
+    {
+        _title = title;
+        _message = message;
+        _visible = true;
+        StateHasChanged();
+
+        // Wait a tick to ensure DOM renders
+        await Task.Yield();
+
+        _tcs = new TaskCompletionSource<bool>();
+        await _tcs.Task;
+    }
+
+    private void Close()
+    {
+        _visible = false;
+        _tcs?.TrySetResult(true);
+        StateHasChanged();
+    }
+
+    public void Dispose()
+    {
+        _tcs?.TrySetCanceled();
+    }
+}

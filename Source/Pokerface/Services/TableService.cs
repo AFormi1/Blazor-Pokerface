@@ -51,8 +51,6 @@ namespace Pokerface.Services
             {
                 Id = nextID,
                 Name = $"Neuer Tisch {nextID}",
-                IsActive = false,
-                MaxUsers = 8,
                 CurrentUsers = 0
             };
 

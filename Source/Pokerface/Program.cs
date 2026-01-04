@@ -8,9 +8,9 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
-builder.Services.AddSingleton<CardSvgProvider>();
 builder.Services.AddSingleton<DbTableService>();
 builder.Services.AddSingleton<TableService>();
+builder.Services.AddSingleton<GameSessionService>();
 
 var app = builder.Build();
 

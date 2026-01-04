@@ -11,10 +11,9 @@ namespace Pokerface.Models
         [Required(ErrorMessage = "Name darf nicht leer oder bereits verwendet sein")]
         public string Name { get; set; } = string.Empty;
 
-        public bool IsActive { get; set; }
 
-        [Range(2, 10, ErrorMessage = "Die Spieleranzahl muss zwischen 2 und 10 sein")]
-        public int MaxUsers { get; set; }
+        [Ignore]
+        public int MaxUsers { get; private set; } = 8 ;
 
         public int CurrentUsers { get; set; }
 

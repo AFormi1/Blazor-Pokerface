@@ -1,16 +1,13 @@
-﻿
-using Pokerface.Models;
-using System.Text;
+﻿using Pokerface.Models;
 
 namespace Pokerface.Services
 {
-    public class CardSvgProvider
+    public static class CardSvgProvider
     {     
      
-        public string GetBacksideSvg() => "images/cards/backside.svg";
+        public static string GetBacksideSvg() => "images/cards/backside.svg";
 
-        public string GetFrontsideSvg(EnumCardRank rank, EnumCardSuit suit)
+        public static string GetFrontsideSvg(EnumCardRank rank, EnumCardSuit suit)
             => $"images/cards/{suit}_{rank}.svg";
     }
-
 }

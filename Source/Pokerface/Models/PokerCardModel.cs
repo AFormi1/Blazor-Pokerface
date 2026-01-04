@@ -4,28 +4,29 @@ namespace Pokerface.Models
 {
     public class PokerCardModel
     {
-        private readonly CardSvgProvider? _cardSvgProvider;             
+          
         public string ImageUrl { get; private set; } = string.Empty;
         public bool IsVisible { get; private set; }
 
+        //Default Constructor
         public PokerCardModel()
         {
-            
-        }
-        public PokerCardModel(CardSvgProvider provider)
-        {
-            _cardSvgProvider = provider;
             Init(EnumCardSuit.Spade, EnumCardRank.Ace, false);
         }
 
-        public void Init(EnumCardSuit suit, EnumCardRank rank, bool showFront)
+        //Constructor for new GamePlay
+        public PokerCardModel(Card card)
         {
-            if (_cardSvgProvider == null)
-                return;
+            Init(card.Suit, card.Rank, false);
+        }
+
+
+        public void Init(EnumCardSuit suit, EnumCardRank rank, bool showFront)
+        {         
 
             ImageUrl = showFront
-                ? _cardSvgProvider.GetFrontsideSvg(rank, suit)
-                : _cardSvgProvider.GetBacksideSvg();
+                ? CardSvgProvider.GetFrontsideSvg(rank, suit)
+                : CardSvgProvider.GetBacksideSvg();
         }
     }
 }

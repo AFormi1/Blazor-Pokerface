@@ -1,0 +1,62 @@
+﻿@implements IDisposable
+
+@if (_visible)
+{
+    <div class="msgbox-backdrop">
+        <div class="msgbox-container">
+            <div class="msgbox-header">@_title</div>
+            <div class="msgbox-body">
+                <input class="form-control" @bind="PlayerName" placeholder="Player" />
+            </div>
+            <div class="msgbox-footer">
+                <button class="btn btn-secondary" @onclick="Cancel">Cancel</button>
+                <button class="btn btn-primary" @onclick="Ok">OK</button>
+            </div>
+        </div>
+    </div>
+
+
+}
+
+@code {
+
+    private string _title = "Spieler Namen eingeben";
+    private bool _visible = false;
+    private TaskCompletionSource<string?>? _tcs;
+
+    [Parameter] public string PlayerName { get; set; } = "Player";
+
+    /// <summary>
+    /// Opens the dialog and waits for user input. Returns the player name if OK, or null if canceled.
+    /// </summary>
+    public async Task<string?> ShowAsync()
+    {
+        _visible = true;
+        StateHasChanged();
+
+        // Wait a tick to ensure DOM renders
+        await Task.Yield();
+
+        _tcs = new TaskCompletionSource<string?>();
+        return await _tcs.Task;
+    }
+
+    private void Ok()
+    {
+        _visible = false;
+        _tcs?.TrySetResult(PlayerName);
+        StateHasChanged();
+    }
+
+    private void Cancel()
+    {
+        _visible = false;
+        _tcs?.TrySetResult(null); // Return null on cancel
+        StateHasChanged();
+    }
+
+    public void Dispose()
+    {
+        _tcs?.TrySetCanceled();
+    }
+}

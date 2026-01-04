@@ -49,24 +49,6 @@
                     </div>
                 </div>
 
-                <!-- Max Users -->
-                <div class="form-row">
-                    <label class="form-label text-white">Maximale Spieler</label>
-                    <div class="form-field">
-                        <InputNumber @bind-Value="tableModel.MaxUsers"
-                                     class="form-control" />
-                        <ValidationMessage For="() => tableModel.MaxUsers" />
-                    </div>
-                </div>
-
-                <!-- Status -->
-                <div class="form-row">
-                    <label class="form-label text-white">Status</label>
-                    <div class="form-field d-flex align-items-center">
-                        <input type="checkbox" checked="@tableModel.IsActive" disabled/>
-                    </div>
-                </div>
-
                 <br />
 
                 <div class="button-row">
