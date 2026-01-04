@@ -1,21 +1,11 @@
-﻿@using System.Globalization;
-
+﻿
 @if (Model != null)
 {
-    <div class="poker-card" style="@PositionStyle; background-image:url('@Model.ImageUrl');"></div>
+    <div class="poker-card" style="background-image:url('@Model.ImageUrl'); display:@(Model.IsVisible? "block" : "none");)"></div>
 }
 
 @code {
+
     [Parameter] public PokerCardModel? Model { get; set; }
-
-    private string PositionStyle =>
-        Model == null
-            ? string.Empty
-            : $"position:absolute;" +
-              $"left:{Model.X.ToString("F2", CultureInfo.InvariantCulture)}px; " +
-              $"top:{Model.Y.ToString("F2", CultureInfo.InvariantCulture)}px; " +
-              $"width:{Model.Width.ToString("F2", CultureInfo.InvariantCulture)}px; " +
-              $"height:{Model.Height.ToString("F2", CultureInfo.InvariantCulture)}px; " +
-              $"transform:translate(-50%, -50%) rotate({Model.Rot.ToString("F2", CultureInfo.InvariantCulture)}deg);";
-
+       
 }

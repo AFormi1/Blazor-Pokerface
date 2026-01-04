@@ -1,25 +1,103 @@
-﻿.gametable-wrapper {
+﻿
+/* Wrapper fills viewport minus header/footer */
+.gametable-wrapper {
     position: relative;
     width: 100%;
-    height: calc(100vh - 37px);
-    padding: 20px; /* keeps space around table */
+    height: calc(100vh - 37px); 
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    box-sizing: border-box;
+    padding: 2rem;
+}
+
+/* Poker table scales with wrapper, keeps aspect ratio, rounded ends */
+.poker-table {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    max-width: 10000px;
+    aspect-ratio: 16 / 9;
+    background-color: #1f7a1f;
+    border-radius: 9999px;
+    border: 10px solid #0b3d0b;
     box-sizing: border-box;
     display: flex;
     justify-content: center;
     align-items: center;
-    overflow: hidden;
 }
 
-#svgObj {
-    position: absolute; /* fill wrapper but scaled via object-fit */
-    top: 0;
-    left: 0;
-    bottom: 0;
-    right: 0;
-    width: 100%;
+.community-cards {
+    height: 18%;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    display: flex;
+    gap: 1rem; 
+}
+
+.players-top {
+    position: absolute;
+    top: 2%;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 60%;
+    height: 18%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.players-bottom {
+    position: absolute;
+    bottom: 2%;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 60%;
+    height: 18%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.player-pair {
+    display: flex;
     height: 100%;
-    object-fit: contain; /* scales to fill wrapper while keeping aspect ratio */
-    display: block;
-    pointer-events: none;
-    /*background-color: rgba(0,0,255,0.2);*/ /* debug */
+    gap: 1rem; 
+}
+
+.player-pair-horizontal-left {
+    position: absolute;
+    top: 50%;
+    left: 1%;
+    transform: translateY(-50%) rotate(-90deg);
+    display: flex;
+    gap: 1rem;
+    transform-origin: center;
+    height: 18%;
+}
+
+.player-pair-horizontal-right {
+    position: absolute;
+    top: 50%;
+    right: 1%; 
+    transform: translateY(-50%) rotate(90deg); 
+    display: flex;
+    gap: 1rem;
+    transform-origin: center;
+    height: 18%;
+}
+
+.card-spot {
+    height: 100%;
+    padding: 2px;
+    aspect-ratio: 363 / 543;
+    border-radius: 10px;
+    border: 1px solid white;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: visible; 
+    position: relative;
 }
