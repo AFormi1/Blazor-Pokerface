@@ -1,4 +1,5 @@
 ﻿using Pokerface.Services;
+using System.Data.SqlTypes;
 
 namespace Pokerface.Models
 {
@@ -14,10 +15,27 @@ namespace Pokerface.Models
         //Default Constructor
         public PokerCardModel()
         {
+            IsVisible = false;
             ImageUrl = CardSvgProvider.GetBacksideSvg();
         }
-           
-        public void SetCard(Card card, bool showFace)
+
+        public PokerCardModel(Card card, bool showFace)
+        {
+            Suit = card.Suit;
+            Rank = card.Rank;
+            ShowFace = showFace;
+            IsVisible = true;
+            ImageUrl = ShowFace ? CardSvgProvider.GetFrontsideSvg(Suit, Rank) : CardSvgProvider.GetBacksideSvg();
+        }
+
+        public void ShowFaceOrBack(bool showFace)
+        {
+            ShowFace = showFace;
+            ImageUrl = ShowFace ? CardSvgProvider.GetFrontsideSvg(Suit, Rank) : CardSvgProvider.GetBacksideSvg();
+        }
+
+
+        public void SetCard (Card card, bool showFace)
         {
             Suit = card.Suit;
             Rank = card.Rank;

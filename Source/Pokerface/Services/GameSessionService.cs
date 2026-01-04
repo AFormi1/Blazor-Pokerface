@@ -1,6 +1,5 @@
 ﻿using Pokerface.Models;
 using Pokerface.Services.DB;
-using System.Xml.Linq;
 
 namespace Pokerface.Services
 {

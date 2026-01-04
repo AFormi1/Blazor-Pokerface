@@ -1,16 +1,13 @@
-﻿using SQLite;
-using System.ComponentModel.DataAnnotations;
-
+﻿
 namespace Pokerface.Models
 {
     public class PlayerModel
-    {      
-
+    {    
         public int Id { get; set; }
         public int Chair { get; set; }
-        public string Name { get; set; } = string.Empty;              
-        public PokerCardModel Card1 { get; set; } = new ();
-        public PokerCardModel Card2 { get; set; } = new ();
+        public string Name { get; set; } = string.Empty;
+        public Card? Card1 { get; set; }
+        public Card? Card2 { get; set; }
 
         public PlayerModel(int chair, string name)
         {
@@ -22,8 +19,5 @@ namespace Pokerface.Models
             Chair = chair;
             Name = name;
         }
-
     }
-
-
 }

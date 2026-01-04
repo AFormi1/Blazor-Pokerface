@@ -16,7 +16,7 @@ namespace Pokerface.Models
 
         public List<PlayerModel> Players { get; set; } = new List<PlayerModel>();
 
-        public List<Card> CardSet { get; set; } = CardDeck.MixWholeRandomCards();
+        public List<Card>? CardSet { get; set; }
 
 
         public GameSessionModel(DbTableService dbTableService)
@@ -68,12 +68,14 @@ namespace Pokerface.Models
 
         public void StartGame()
         {
+            CardSet = CardDeck.GenerateShuffledDeck();
+
             //give every player two cards
             foreach (var player in Players)
             {
-                player.Card1.SetCard(CardSet[0], true);
+                player.Card1 = CardSet[0];
                 CardSet.RemoveAt(0);
-                player.Card2.SetCard(CardSet[0], true);
+                player.Card2 = CardSet[0];
                 CardSet.RemoveAt(0);   
             }
 
