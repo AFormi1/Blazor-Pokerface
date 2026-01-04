@@ -67,9 +67,34 @@
 
     private List<TableModel>? tables;
 
+
+
+    protected override void OnInitialized()
+    {
+        sessionService.CurrentTableUsersChanged += OnCurrentTableUsersChanged;
+    }
+
     protected override async Task OnInitializedAsync()
     {
         tables = await TableService.GetTablesAsync();
+    }
+
+
+    private void OnCurrentTableUsersChanged(object? sender, TableModel updatedTable)
+    {
+        InvokeAsync(() =>
+        {
+            if (tables == null)
+                return;
+
+            // Find the table in your list
+            var table = tables.FirstOrDefault(t => t.Id == updatedTable.Id);
+
+            if (table != null)
+                table.CurrentUsers = updatedTable.CurrentUsers;
+
+            StateHasChanged();
+        });
     }
 
 
