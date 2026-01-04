@@ -7,26 +7,21 @@ namespace Pokerface.Models
           
         public string ImageUrl { get; private set; } = string.Empty;
         public bool IsVisible { get; private set; }
+        public EnumCardSuit Suit { get; private set; }
+        public EnumCardRank Rank { get; private set; }
 
         //Default Constructor
         public PokerCardModel()
         {
-            Init(EnumCardSuit.Spade, EnumCardRank.Ace, false);
+            ImageUrl = CardSvgProvider.GetBacksideSvg();
         }
 
         //Constructor for new GamePlay
         public PokerCardModel(Card card)
         {
-            Init(card.Suit, card.Rank, false);
+            ImageUrl = CardSvgProvider.GetBacksideSvg();
         }
 
 
-        public void Init(EnumCardSuit suit, EnumCardRank rank, bool showFront)
-        {         
-
-            ImageUrl = showFront
-                ? CardSvgProvider.GetFrontsideSvg(rank, suit)
-                : CardSvgProvider.GetBacksideSvg();
-        }
     }
 }

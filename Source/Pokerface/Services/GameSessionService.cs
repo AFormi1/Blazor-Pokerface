@@ -1,6 +1,6 @@
-﻿using Pokerface.Components.Pages;
-using Pokerface.Models;
+﻿using Pokerface.Models;
 using Pokerface.Services.DB;
+using System.Xml.Linq;
 
 namespace Pokerface.Services
 {
@@ -15,6 +15,12 @@ namespace Pokerface.Services
             _tableService = tableService;
         }
 
+        public GameSessionModel? GetGameSessionById(int sessionId)
+        {
+            return GameSessions.FirstOrDefault(s => s.Id == sessionId);
+        }
+ 
+
         public async Task<GameSessionModel?> JoinGameSessionAsync(TableModel table, string playerName)
         {
             // Try to find an existing session for the table
@@ -26,6 +32,7 @@ namespace Pokerface.Services
                 // No session exists --> create a new one
                 session = new GameSessionModel(_tableService)
                 {
+                    Id = table.Id,
                     GameTable = table
                 };
                 GameSessions.Add(session);
@@ -44,7 +51,7 @@ namespace Pokerface.Services
             }
 
             // Add the player
-            await session.AddPlayer(new PlayerModel { Name = playerName });
+            await session.AddPlayer(new PlayerModel(session.GameTable.CurrentUsers + 1, playerName));
 
             return session;
         }
