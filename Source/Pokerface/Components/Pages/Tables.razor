@@ -1,8 +1,8 @@
 ﻿@page "/tables"
 
-
 @inject NavigationManager Nav
 @inject TableService TableService
+@inject GameSessionService sessionService
 
 <PageTitle>Available Tables</PageTitle>
 
@@ -27,10 +27,7 @@
                 <thead>
                     <tr>
                         <th style="width: 20%;">Tischname</th>
-                        <th style="width: 5%;" class="text-center">Maximale Spieler</th>
-                        <th style="width: 5%;" class="text-center">Aktuelle Spieler</th>
-                        <th style="width: 5%;" class="text-center">Status</th>
-                        <th style="width: 5%;" class="text-center">Modus</th>
+                        <th style="width: 5%;" class="text-center">Spieler</th>
                         <th style="width: 5%;" class="text-center">Bearbeiten</th>
                         <th style="width: 5%;" class="text-center">Beitreten</th>
                     </tr>
@@ -40,26 +37,15 @@
                     {
                         <tr>
                             <td>@table.Name</td>
-                            <td class="text-center">@table.MaxUsers</td>
-                            <td class="text-center">@table.CurrentUsers</td>
-                            <td class="text-center">
-                                <input type="checkbox" checked="@table.IsActive" disabled />
-                            </td>
-                            <td class="text-center">
-                                <EditForm Enhance="true" Model="table" OnValidSubmit="@(() => TableOnOff(table))" FormName="@($"formToggle{table.Id}")">
-                                    <button type="submit" class="btn btn-sm btn-primary align-content-center" style="width:90px;">
-                                        @(table.IsActive ? "Aus" : "Ein")
-                                    </button>
-                                </EditForm>
-                            </td>
+                            <td class="text-center">@table.CurrentUsers / @table.MaxUsers</td>
                             <td class="text-center">
                                 <a href="@($"/editable/{table.Id}")" class="btn btn-sm btn-primary align-content-center" style="width:90px;">Bearbeiten</a>
                             </td>
                             <td class="text-center">
-                                <button class="btn btn-sm @(table.IsActive ? "btn-primary" : "btn-secondary")"
+                                <button class="btn btn-sm @(table.CurrentUsers < table.MaxUsers ? "btn-primary" : "btn-secondary")"
                                         style="width:90px;"
                                         @onclick="() => JoinTable(table)">
-                                    Join
+                                    Beitreten
                                 </button>
                             </td>
                         </tr>
@@ -70,9 +56,15 @@
     </div>
 </div>
 
-
+@* Popup for Join Session *@
+<PlayerInput @ref="msgPlayerName"/>
+<MessageBox @ref="msgBox" />
 
 @code {
+
+    private PlayerInput? msgPlayerName;
+    private MessageBox? msgBox;
+
     private List<TableModel>? tables;
 
     protected override async Task OnInitializedAsync()
@@ -80,20 +72,24 @@
         tables = await TableService.GetTablesAsync();
     }
 
-    private async Task TableOnOff(TableModel model)
+
+    private async Task JoinTable(TableModel table)
     {
-        model.IsActive = !model.IsActive;
-
-        await TableService.SaveTableAsync(model);
-
-        // Refresh UI
-        StateHasChanged();
-    }
-
-    private void JoinTable(TableModel table)
-    {
-        if (!table.IsActive)
+        if (msgPlayerName == null || msgBox == null)
             return; // do nothing if inactive
+
+        string? UserName = await msgPlayerName.ShowAsync();
+
+        if (string.IsNullOrWhiteSpace(UserName))
+            return; 
+
+        GameSessionModel? sessionModel = await sessionService.JoinGameSessionAsync(table, UserName.Trim());
+
+        if (sessionModel == null)
+        {
+            await msgBox.ShowAsync("Beitritt nicht möglich", "Spielername bereits vorhanden!");
+            return;
+        }
 
         Nav.NavigateTo($"/joingametable/{table.Id}");
     }

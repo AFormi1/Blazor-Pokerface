@@ -1,6 +1,5 @@
 ﻿@page "/joingametable/{Id:int}"
 
-@inject CardSvgProvider CardSvgProvider
 @inject NavigationManager nav
 @inject IJSRuntime JS
 
@@ -103,32 +102,5 @@
     private PokerCardModel Card_C4 = new();
     private PokerCardModel Card_C5 = new();
 
-
-    protected override void OnInitialized()
-    {
-        Card_P11 = new(CardSvgProvider);
-        Card_P12 = new(CardSvgProvider);
-        Card_P21 = new(CardSvgProvider);
-        Card_P22 = new(CardSvgProvider);
-        Card_P31 = new(CardSvgProvider);
-        Card_P32 = new(CardSvgProvider);
-        Card_P41 = new(CardSvgProvider);
-        Card_P42 = new(CardSvgProvider);
-        Card_P51 = new(CardSvgProvider);
-        Card_P52 = new(CardSvgProvider);
-        Card_P61 = new(CardSvgProvider);
-        Card_P62 = new(CardSvgProvider);
-        Card_P71 = new(CardSvgProvider);
-        Card_P72 = new(CardSvgProvider);
-        Card_P81 = new(CardSvgProvider);
-        Card_P82 = new(CardSvgProvider);
-
-        Card_C1 = new(CardSvgProvider);
-        Card_C2 = new(CardSvgProvider);
-        Card_C3 = new(CardSvgProvider);
-        Card_C4 = new(CardSvgProvider);
-        Card_C5 = new(CardSvgProvider);
-
-    }
 
 }
