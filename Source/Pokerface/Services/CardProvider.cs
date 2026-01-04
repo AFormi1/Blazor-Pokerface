@@ -6,65 +6,62 @@ namespace Pokerface.Services
 {
     public class CardProvider
     {
-
-        public CardProvider()
+        //ids must match with pokertable.svg
+        public static readonly string[] CardElementIds =
         {
+            "f1", "f2", "f3", "turn", "river",
+            "p11","p12","p21","p22","p31","p32",
+            "p41","p42","p51","p52","p61","p62",
+            "p71","p72","p81","p82"
+        };
 
+
+        // maps SVG IDs -> enum
+        public static readonly Dictionary<string, EnumCardPositions> SvgIdToEnumMap = new()
+        {
+            { "f1", EnumCardPositions.Flop1 },
+            { "f2", EnumCardPositions.Flop2 },
+            { "f3", EnumCardPositions.Flop3 },
+            { "turn", EnumCardPositions.Turn },
+            { "river", EnumCardPositions.River },
+
+            { "p11", EnumCardPositions.Player1Card1 },
+            { "p12", EnumCardPositions.Player1Card2 },
+            { "p21", EnumCardPositions.Player2Card1 },
+            { "p22", EnumCardPositions.Player2Card2 },
+            { "p31", EnumCardPositions.Player3Card1 },
+            { "p32", EnumCardPositions.Player3Card2 },
+            { "p41", EnumCardPositions.Player4Card1 },
+            { "p42", EnumCardPositions.Player4Card2 },
+            { "p51", EnumCardPositions.Player5Card1 },
+            { "p52", EnumCardPositions.Player5Card2 },
+            { "p61", EnumCardPositions.Player6Card1 },
+            { "p62", EnumCardPositions.Player6Card2 },
+            { "p71", EnumCardPositions.Player7Card1 },
+            { "p72", EnumCardPositions.Player7Card2 },
+            { "p81", EnumCardPositions.Player8Card1 },
+            { "p82", EnumCardPositions.Player8Card2 },
+        };
+
+        // current rects by enum
+        public Dictionary<EnumCardPositions, DomRect> CardRects { get; private set; } = [];
+
+        public void SetCardRects(Dictionary<string, DomRect> rects)
+        {
+            CardRects = SvgIdToEnumMap
+                .Where(kv => rects.ContainsKey(kv.Key))
+                .ToDictionary(kv => kv.Value, kv => rects[kv.Key]);
         }
 
-        public string GetBacksideSvg()
+        public DomRect GetCardRect(EnumCardPositions position)
         {
-            return "images/cards/backside.svg";
+            return CardRects.TryGetValue(position, out var rect) ? rect : new DomRect();
         }
+
+        public string GetBacksideSvg() => "images/cards/backside.svg";
 
         public string GetFrontsideSvg(EnumCardRank rank, EnumCardSuit suit)
-        {
-            var rankName = rank.ToString();
-            var suitName = suit.ToString();
-
-            return $"images/cards/{suitName}_{rankName}.svg";
-        }
-
-        public record CardLayout(double X, double Y, double Rotation);
-
-        public readonly Dictionary<EnumCardPositions, CardLayout> Positions =
-            new()
-            {
-                // ===== Community cards (centered row) =====
-                { EnumCardPositions.Flop1,  new(38, 50, 0) },
-                { EnumCardPositions.Flop2,  new(45, 50, 0) },
-                { EnumCardPositions.Flop3,  new(50, 50, 0) },
-                { EnumCardPositions.Turn,   new(50, 50, 0) },
-                { EnumCardPositions.River,  new(50, 50, 0) },
-
-                // ===== Top side (3 players, 2 cards each) =====
-                { EnumCardPositions.Player1Card1, new(28, 18, 0) },
-                { EnumCardPositions.Player1Card2, new(31, 18, 0) },
-
-                { EnumCardPositions.Player2Card1, new(45, 18, 0) },
-                { EnumCardPositions.Player2Card2, new(48, 18, 0) },
-
-                { EnumCardPositions.Player3Card1, new(62, 18, 0) },
-                { EnumCardPositions.Player3Card2, new(65, 18, 0) },
-
-                // ===== Bottom side (mirrored) =====
-                { EnumCardPositions.Player4Card1, new(28, 82, 0) },
-                { EnumCardPositions.Player4Card2, new(31, 82, 0) },
-
-                { EnumCardPositions.Player5Card1, new(45, 82, 0) },
-                { EnumCardPositions.Player5Card2, new(48, 82, 0) },
-
-                { EnumCardPositions.Player6Card1, new(62, 82, 0) },
-                { EnumCardPositions.Player6Card2, new(65, 82, 0) },
-
-                // ===== Left round side =====
-                { EnumCardPositions.Player7Card1, new(12, 47, -90) },
-                { EnumCardPositions.Player7Card2, new(12, 53, -90) },
-
-                // ===== Right round side =====
-                { EnumCardPositions.Player8Card1, new(88, 47, 90) },
-                { EnumCardPositions.Player8Card2, new(88, 53, 90) }
-            };
-
+            => $"images/cards/{suit}_{rank}.svg";
     }
+
 }
