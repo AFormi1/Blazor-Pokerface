@@ -7,6 +7,7 @@ namespace Pokerface.Models
         public int CurrentBet { get; set; }      
         public int SmallBlind { get; set; } = 5;
         public int BigBlind { get; set; } = 10;
+        public int MinBet { get; set; } = 5;
         public int MaxBet { get; set; } = 10000;
         public int Pot { get; set; }
 

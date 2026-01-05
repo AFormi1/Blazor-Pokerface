@@ -103,6 +103,16 @@ namespace Pokerface.Models
             // Compute available actions for that player
             UpdateAvailableActions(Players[CurrentPlayer]);
 
+            //give every player two cards
+            foreach (var player in Players)
+            {
+                player.Card1 = CardSet[0];
+                CardSet.RemoveAt(0);
+                player.Card2 = CardSet[0];
+                CardSet.RemoveAt(0);
+            }
+
+
             OnGameChanged?.Invoke(this, EventArgs.Empty);
 
             //waiting for player input by event callback
@@ -129,50 +139,96 @@ namespace Pokerface.Models
             if (!player.IsNext)
                 return;
 
+            // Apply action to the game state
             switch (action.ActionType)
             {
                 case EnumPlayerAction.None:
                     break;
+
                 case EnumPlayerAction.Fold:
+                    player.HasFolded = true; // mark player as folded
                     break;
+
                 case EnumPlayerAction.Check:
+                    // nothing changes in bets
                     break;
+
                 case EnumPlayerAction.Call:
+                    int callAmount = GameSettings.CurrentBet - player.CurrentBet;
+                    player.CurrentBet += callAmount;
+                    player.RemainingBet -= callAmount;
+                    GameSettings.Pot += callAmount;
                     break;
+
                 case EnumPlayerAction.Bet:
-                    break;
                 case EnumPlayerAction.Raise:
-                    break;
                 case EnumPlayerAction.ReRaise:
+                    player.CurrentBet += action.CurrentBet;
+                    player.RemainingBet -= action.CurrentBet;
+                    GameSettings.CurrentBet = Math.Max(GameSettings.CurrentBet, player.CurrentBet);
+                    GameSettings.Pot += action.CurrentBet;
                     break;
+
                 case EnumPlayerAction.AllIn:
+                    player.CurrentBet += player.RemainingBet;
+                    GameSettings.CurrentBet = Math.Max(GameSettings.CurrentBet, player.CurrentBet);
+                    GameSettings.Pot += player.RemainingBet;
+                    player.RemainingBet = 0;
                     break;
+
                 case EnumPlayerAction.PostSmallBlind:
+                    player.CurrentBet += GameSettings.SmallBlind;
+                    player.RemainingBet -= GameSettings.SmallBlind;
+                    GameSettings.Pot += GameSettings.SmallBlind;
                     break;
+
                 case EnumPlayerAction.PostBigBlind:
+                    player.CurrentBet += GameSettings.BigBlind;
+                    player.RemainingBet -= GameSettings.BigBlind;
+                    GameSettings.Pot += GameSettings.BigBlind;
                     break;
+
                 case EnumPlayerAction.PostAnte:
+                    player.CurrentBet += GameSettings.SmallBlind; // or ante amount
+                    player.RemainingBet -= GameSettings.SmallBlind;
+                    GameSettings.Pot += GameSettings.SmallBlind;
                     break;
+
                 case EnumPlayerAction.SitOut:
+                    player.IsSittingOut = true;
                     break;
+
                 case EnumPlayerAction.SitIn:
+                    player.IsSittingOut = false;
                     break;
+
                 case EnumPlayerAction.Timeout:
+                    // optional: handle timeout
                     break;
             }
 
+            // Mark current player as done
             player.IsNext = false;
 
-            // move to the next player
-            CurrentPlayer = (CurrentPlayer + 1) % Players.Count;
+            // Move to the next active player
+            do
+            {
+                CurrentPlayer = (CurrentPlayer + 1) % Players.Count;
+            }
+            while (Players[CurrentPlayer].HasFolded || Players[CurrentPlayer].IsSittingOut);
+
             var nextPlayer = Players[CurrentPlayer];
             nextPlayer.IsNext = true;
 
-            // compute available actions
+            // Compute available actions for the next player
             UpdateAvailableActions(nextPlayer);
 
+
+
+            // Refresh UI
             OnGameChanged?.Invoke(this, EventArgs.Empty);
         }
+
 
         public void UpdateAvailableActions(PlayerModel player)
         {

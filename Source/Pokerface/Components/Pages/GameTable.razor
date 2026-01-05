@@ -132,9 +132,15 @@
 
                 @if (Session.AvailableActions.Any(a => a.RequiresAmount))
                 {
+                    @* Ensure slider starts at min bet *@
+                    @if (SelectedAmount < Session.GameSettings.MinBet)
+                    {
+                        SelectedAmount = Session.GameSettings.MinBet;
+                    }
+
                     <input class="action-slider" type="range"
-                           min="@Session.GameSettings.SmallBlind"
-                           max="@Me.RemainingBet"
+                           min="@Session.GameSettings.MinBet"
+                           max="@(Math.Min(Me.RemainingBet, Session.GameSettings.MaxBet))"
                            step="5"
                            @bind="SelectedAmount" />
 
