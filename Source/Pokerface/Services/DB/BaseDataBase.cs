@@ -1,6 +1,4 @@
-﻿
-using Pokerface.Models;
-using SQLite;
+﻿using SQLite;
 
 namespace Pokerface.Services.DB
 {
