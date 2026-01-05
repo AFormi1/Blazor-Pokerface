@@ -1,11 +1,10 @@
-﻿using Pokerface.Services;
-using System.Data.SqlTypes;
+﻿using Pokerface.Enums;
+using Pokerface.Services;
 
 namespace Pokerface.Models
 {
     public class PokerCardModel
-    {
-          
+    {          
         public string ImageUrl { get; private set; } = string.Empty;
         public bool IsVisible { get; private set; }
         public bool ShowFace { get; private set; }

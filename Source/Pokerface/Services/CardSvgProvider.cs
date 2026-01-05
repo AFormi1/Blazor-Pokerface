@@ -1,4 +1,4 @@
-﻿using Pokerface.Models;
+﻿using Pokerface.Enums;
 
 namespace Pokerface.Services
 {

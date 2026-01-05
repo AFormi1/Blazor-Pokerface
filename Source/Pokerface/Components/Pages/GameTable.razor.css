@@ -78,6 +78,16 @@
     height: 100%; /* fill parent container height */
 }
 
+/* Player active styling */
+.player-active {
+    width: 2rem;
+    height: 2rem;
+    background-color: orange;
+    border-radius: 50%;
+    flex: 0 0 auto;
+    margin-top: 0px;
+}
+
 /* Player name styling */
 .player-label {
     color: white;
@@ -148,3 +158,49 @@
         align-items: center;
         justify-content: center;
     }
+
+
+.action-mask {
+    position: absolute;
+    inset: 0;
+    z-index: 100;
+    display: flex;
+    align-items: flex-start;
+    justify-content: flex-end;
+}
+
+.action-panel {
+    background-color: rgba(128, 128, 128, 0.8);
+    border-radius: 1rem;
+    padding: 1rem;
+    min-width: 350px;
+    color: white;
+}
+
+.action-title {
+    font-weight: bold;
+    text-align: center;
+}
+
+.action-buttons {
+    display: flex;
+    gap: 0.5rem;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.action-slider {
+    width: 100%;
+    caret-color: red;
+}
+
+.bet-amount {
+    text-align: center; /* center text inside div */
+    font-weight: bold;
+    color: white;
+    width: 100%; /* optional, ensures it spans container */
+}
+
+.btn-action {
+    font-weight: bold;
+}

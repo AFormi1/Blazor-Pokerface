@@ -1,4 +1,4 @@
-﻿
+﻿using Pokerface.Enums;
 using Pokerface.Services.DB;
 
 namespace Pokerface.Models
@@ -20,6 +20,9 @@ namespace Pokerface.Models
 
         public List<Card>? CardSet { get; set; }
 
+        public GameContext GameSettings { get; set; } = new GameContext();
+
+        public List<ActionOption> AvailableActions { get; private set; } = new();
 
         public GameSessionModel(DbTableService dbTableService)
         {
@@ -60,38 +63,143 @@ namespace Pokerface.Models
             GameTable.CurrentUsers = Players.Count;
 
             //Update the TableModel in DB
-            await _dbTableService.SaveItemAsync(GameTable);           
+            await _dbTableService.SaveItemAsync(GameTable);
 
             OnPlayerJoined?.Invoke(this, EventArgs.Empty);
 
             //if players is zero, close the game session ???
-            if (GameTable.CurrentUsers == 0)  
+            if (GameTable.CurrentUsers == 0)
                 GameLocked = false;
         }
 
+
+        private int CurrentPlayer = -1;
+        private bool AllPlayersTookAction;
+
         public void StartGame()
         {
+            //Reset the game
             CardSet = CardDeck.GenerateShuffledDeck();
+            GameSettings = new();
+            AvailableActions = new();
 
-            //give every player two cards
+            //subscribe to all player actions
             foreach (var player in Players)
             {
-                player.Card1 = CardSet[0];
-                CardSet.RemoveAt(0);
-                player.Card2 = CardSet[0];
-                CardSet.RemoveAt(0);   
+                player.CurrentBet = 0;
+                player.RemainingBet = 100;
+                player.PlayerInput += OnPlayerActionComitted;
             }
 
             GameLocked = true;
 
+            //start with the very first player
+            if (!Players.Any())
+                return;
+
+            CurrentPlayer++;
+            Players[CurrentPlayer].IsNext = true;
+
+            // Compute available actions for that player
+            UpdateAvailableActions(Players[CurrentPlayer]);
+
+            OnGameChanged?.Invoke(this, EventArgs.Empty);
+
+            //waiting for player input by event callback
+        }
+
+
+
+        ////give every player two cards
+        //foreach (var player in Players)
+        //{
+        //    player.Card1 = CardSet[0];
+        //    CardSet.RemoveAt(0);
+        //    player.Card2 = CardSet[0];
+        //    CardSet.RemoveAt(0);
+
+        //    player.IsNext = CurrentPlayer == current;
+
+        //    current++;
+        //}
+
+
+        private void OnPlayerActionComitted(PlayerModel player, PlayerAction action)
+        {
+            if (!player.IsNext)
+                return;
+
+            switch (action.ActionType)
+            {
+                case EnumPlayerAction.None:
+                    break;
+                case EnumPlayerAction.Fold:
+                    break;
+                case EnumPlayerAction.Check:
+                    break;
+                case EnumPlayerAction.Call:
+                    break;
+                case EnumPlayerAction.Bet:
+                    break;
+                case EnumPlayerAction.Raise:
+                    break;
+                case EnumPlayerAction.ReRaise:
+                    break;
+                case EnumPlayerAction.AllIn:
+                    break;
+                case EnumPlayerAction.PostSmallBlind:
+                    break;
+                case EnumPlayerAction.PostBigBlind:
+                    break;
+                case EnumPlayerAction.PostAnte:
+                    break;
+                case EnumPlayerAction.SitOut:
+                    break;
+                case EnumPlayerAction.SitIn:
+                    break;
+                case EnumPlayerAction.Timeout:
+                    break;
+            }
+
+            player.IsNext = false;
+
+            // move to the next player
+            CurrentPlayer = (CurrentPlayer + 1) % Players.Count;
+            var nextPlayer = Players[CurrentPlayer];
+            nextPlayer.IsNext = true;
+
+            // compute available actions
+            UpdateAvailableActions(nextPlayer);
+
             OnGameChanged?.Invoke(this, EventArgs.Empty);
         }
 
-        public void ExitGame()
+        public void UpdateAvailableActions(PlayerModel player)
         {
-            //Todo... handle what should happen ...
-            ////if players is zero, close the game session ???
+            var actions = new List<ActionOption>();
+
+            // Fold is always available
+            actions.Add(new ActionOption(EnumPlayerAction.Fold));
+
+            // Check / Call logic
+            if (player.CurrentBet < GameSettings.CurrentBet)
+                actions.Add(new ActionOption(EnumPlayerAction.Call));
+            else
+                actions.Add(new ActionOption(EnumPlayerAction.Check));
+
+            // Bet / Raise logic
+            if (GameSettings.CurrentBet == 0)
+                actions.Add(new ActionOption(EnumPlayerAction.Bet, requiresAmount: true));
+            else
+                actions.Add(new ActionOption(EnumPlayerAction.Raise, requiresAmount: true));
+
+            // All-in
+            if (player.RemainingBet > 0)
+                actions.Add(new ActionOption(EnumPlayerAction.AllIn));
+
+            AvailableActions = actions;
         }
+
 
     }
 }
