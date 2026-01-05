@@ -9,6 +9,8 @@ namespace Pokerface.Models
         public bool IsNext { get; set; }
         public int CurrentBet { get; set; }
         public int RemainingBet { get; set; } = 100;
+        public bool HasFolded { get; set; }
+        public bool IsSittingOut { get; set; }
         public Card? Card1 { get; set; }
         public Card? Card2 { get; set; }
 
