@@ -103,15 +103,6 @@ namespace Pokerface.Models
             // Compute available actions for that player
             UpdateAvailableActions(Players[CurrentPlayer]);
 
-            //give every player two cards
-            foreach (var player in Players)
-            {
-                player.Card1 = CardSet[0];
-                CardSet.RemoveAt(0);
-                player.Card2 = CardSet[0];
-                CardSet.RemoveAt(0);
-            }
-
 
             OnGameChanged?.Invoke(this, EventArgs.Empty);
 
@@ -127,10 +118,6 @@ namespace Pokerface.Models
         //    CardSet.RemoveAt(0);
         //    player.Card2 = CardSet[0];
         //    CardSet.RemoveAt(0);
-
-        //    player.IsNext = CurrentPlayer == current;
-
-        //    current++;
         //}
 
 
