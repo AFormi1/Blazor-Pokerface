@@ -5,15 +5,15 @@ namespace Pokerface.Models
     public class ActionOption
     {
         public EnumPlayerAction ActionType { get; }
-        public bool RequiresAmount { get; }
+        public int RequiredAmount { get; set; }
         public string Label => ActionType.ToString();
 
         public int SelectedAmount { get; set; }
 
-        public ActionOption(EnumPlayerAction actionType, bool requiresAmount = false)
+        public ActionOption(EnumPlayerAction actionType, int requiredAmount)
         {
             ActionType = actionType;
-            RequiresAmount = requiresAmount;
+            RequiredAmount = requiredAmount;
         }
     }
 

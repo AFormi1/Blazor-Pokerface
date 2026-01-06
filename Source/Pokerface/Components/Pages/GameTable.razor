@@ -192,11 +192,20 @@
                             }
                         </div>
 
-                        @if (Session.AvailableActions.Any(a => a.RequiresAmount) && Session.CurrentGame.MinBet < GetMaxBet())
+                        @if (Session.AvailableActions.Any(a => a.RequiredAmount > 0))
                         {
-                            <input class="action-slider" type="range"
-                                   min="@Session.CurrentGame.MinBet"
-                                   max="@GetMaxBet()"
+                            var minAmount = Session.AvailableActions
+                            .Where(a => a.RequiredAmount > 0)
+                            .Min(a => a.RequiredAmount);
+
+                            var maxAmount = Math.Min(Me.RemainingStack, GetMaxBet());
+
+                            if (SelectedAmount < minAmount)
+                                SelectedAmount = minAmount;
+
+                            <input type="range"
+                                   min="@minAmount"
+                                   max="@maxAmount"
                                    step="5"
                                    @bind-value="SelectedAmount"
                                    @bind-value:event="oninput" />
@@ -223,7 +232,7 @@
     [Parameter]
     public int PlayerID { get; set; }
 
-    private bool NewGameDisabled => !(Session != null && Session.Players.Count >= 2 && !Session.CurrentGame.RoundLocked);
+    private bool NewGameDisabled => !(Session != null && Session.PlayersPending.Count >= 2 && !Session.CurrentGame.RoundLocked);
 
     private GameSessionModel? Session { get; set; }
 
@@ -273,20 +282,15 @@
         //Add a event listener, to detect when other players are joinung
         Session.OnPlayerJoined += Session_OnPlayerJoined;
         Session.OnGameChanged += Session_OnGameChanged;
-
+        
         Me = Session.GetPlayerById(PlayerID);
-        if (Me == null)
-            return;
 
-        // Build chair → player lookup
+        // Build chair → player lookup, per default its the pending players list when we load this page
         PlayersByChair = Enumerable.Range(1, 8)
             .ToDictionary(
                 chair => chair,
-                chair => Session.Players.FirstOrDefault(p => p.Chair == chair)
+                chair => Session.PlayersPending.FirstOrDefault(p => p.Chair == chair)
             );
-
-        MapCommunityCards();
-        MapPlayerCards();
     }
 
     private void Session_OnPlayerJoined(object? sender, EventArgs e)
@@ -297,7 +301,7 @@
             PlayersByChair = Enumerable.Range(1, 8)
                 .ToDictionary(
                     chair => chair,
-                    chair => Session!.Players.FirstOrDefault(p => p.Chair == chair)
+                    chair => Session!.CurrentGame.Players.FirstOrDefault(p => p.Chair == chair)
                 );
 
             // Update cards
@@ -410,13 +414,17 @@
     }
 
 
-
     private async Task StartGame()
     {
-        //Todo: StartNewGame logic and resets, debugging player actions, UI styling
-
         if (Session == null)
             return;
+
+        // Build chair → player lookup
+        PlayersByChair = Enumerable.Range(1, 8)
+            .ToDictionary(
+                chair => chair,
+                chair => Session.CurrentGame.Players.FirstOrDefault(p => p.Chair == chair)
+            );
 
         ClearAllCards();
 
@@ -427,11 +435,11 @@
     private async Task ExitGame()
     {
         if (Session != null && Me != null)
-        {
+        {           
             Session.OnPlayerJoined -= Session_OnPlayerJoined;
             Session.OnGameChanged -= Session_OnGameChanged;
             Session.OnRoundFinished -= Session_OnRoundFinished;
-            await SessionService.RemovePlayerFromSessionAsync(Session, Me);
+            await SessionService.RemovePlayerFromSessionAsync(Session, Me);            
         }
 
         Nav.NavigateTo($"/tables");
