@@ -11,32 +11,33 @@ namespace Pokerface.Services
                 return;
 
             BurnCard(cardset);
-            communityset ??= new List<Card>();
+            if (communityset == null)
+                communityset = new List<Card>();
 
             communityset.Add(cardset[0]);
             communityset.Add(cardset[1]);
             communityset.Add(cardset[2]);
 
-            communityset.RemoveRange(0, 3);
+            cardset.RemoveRange(0, 3);
         }
 
         public static void DealTurn(List<Card>? cardset, List<Card>? communityset)
         {
-            if (cardset == null)
+            if (cardset == null || communityset == null)
                 return;
 
             BurnCard(cardset);
-            communityset!.Add(cardset[0]);
+            communityset.Add(cardset[0]);
             cardset.RemoveAt(0);
         }
 
         public static void DealRiver(List<Card>? cardset, List<Card>? communityset)
         {
-            if (cardset == null)
+            if (cardset == null || communityset == null)
                 return;
 
             BurnCard(cardset);
-            communityset!.Add(cardset[0]);
+            communityset.Add(cardset[0]);
             cardset.RemoveAt(0);
         }
 
