@@ -46,14 +46,18 @@ namespace Pokerface.Models
 
         public void TakeAction(ActionOption option)
         {
-             PlayerAction action = new PlayerAction
-                {
-                    ActionType = option.ActionType,
-                    CurrentBet = option.RequiresAmount ? option.SelectedAmount : 0
-                };
+            // Determine the amount to commit for this action
+            int amountToCommit = option.RequiredAmount > 0 ? option.SelectedAmount : 0;
+
+            PlayerAction action = new PlayerAction
+            {
+                ActionType = option.ActionType,
+                CurrentBet = amountToCommit
+            };
 
             PlayerInput?.Invoke(this, action);
         }
+
 
         public void ResetRoundSettings()
         {

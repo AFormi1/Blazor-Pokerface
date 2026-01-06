@@ -46,7 +46,7 @@ namespace Pokerface.Services
 
 
                 // Check if player already exists in the session
-                if (session.Players.Any(p => p.Name.Equals(playerName, StringComparison.OrdinalIgnoreCase)))
+                if (session.PlayersPending.Any(p => p.Name.Equals(playerName, StringComparison.OrdinalIgnoreCase)))
                     return null; // player already joined
 
             }
@@ -68,7 +68,7 @@ namespace Pokerface.Services
             CurrentTableUsersChanged?.Invoke(this, session.GameTable);
 
             // If no players left, remove the session
-            if (session.Players.Count == 0)
+            if (session.CurrentGame.Players.Count == 0)
                 RemoveSession(session);
         }
 
@@ -80,7 +80,7 @@ namespace Pokerface.Services
             GameSessions.Remove(session);
 
             // optionally: clear its lists to free memory faster
-            session.Players.Clear();
+            session.PlayersPending.Clear();
             session.CardSet?.Clear();
         }
 
