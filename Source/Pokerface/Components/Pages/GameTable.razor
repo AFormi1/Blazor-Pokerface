@@ -113,7 +113,7 @@
                 disabled="@NewGameDisabled">
             Starte Spiel
         </button>
-        <button class="btn btn-primary" @onclick="ExitGame">Verlassen</button>
+        <button class="btn btn-primary" @onclick="(() => ExitGame(true))">Verlassen</button>
     </div>
 
     @if (Session != null && Session.CurrentGame != null)
@@ -194,8 +194,7 @@
     }
 </div>
 
-
-
+<MessageBox @ref="msgBox" />
 
 @code {
     [Parameter]
@@ -203,6 +202,8 @@
 
     [Parameter]
     public int PlayerID { get; set; }
+
+    private MessageBox? msgBox;
 
     public bool NewGameDisabled
     {
@@ -264,6 +265,7 @@
         Session.OnPlayerJoined += Session_OnPlayerJoined;
         Session.OnGameChanged += Session_OnGameChanged;
         Session.OnRoundFinished += Session_OnRoundFinished;
+        Session.OnPlayerLost += Session_OnPlayerLost;
 
         RebuildPlayersByChair();
     }
@@ -309,6 +311,23 @@
             );
     }
 
+
+    private async Task Session_OnPlayerLost(PlayerModel player)
+    {
+        Console.WriteLine($"FrontendCode: Session_OnPlayerLost; ... {player.Id}");
+
+        if (Me == null || msgBox == null)
+            return;
+
+        if (player != Me) 
+            return; 
+
+        Console.WriteLine($"FrontendCode: Session_OnPlayerLost; ... what the fuck");
+        await msgBox.ShowAsync("You Lost!", "Da du zu wenig Geld hast, wirst du aus dem Spiel ausgeschlossen!\r\nDu kannst gerne nochmal beitreten!");
+
+        await ExitGame(false); 
+        
+    }
 
     private void Session_OnRoundFinished(object? sender, EventArgs e)
     {
@@ -404,29 +423,31 @@
     private async Task StartGame()
     {
         if (Session == null || Session.CurrentGame == null || Me == null)
-            return;
+            return;       
 
-        // Build chair → player lookup
+        ClearAllCards();
+
+        await Session.StartGame();
+
+         // Build chair → player lookup
         PlayersByChair = Enumerable.Range(1, 8)
             .ToDictionary(
                 chair => chair,
                 chair => Session.CurrentGame.Players.FirstOrDefault(p => p.Chair == chair)
-            );
-
-        ClearAllCards();
-
-        Session.StartGame();
-        Session.OnRoundFinished += Session_OnRoundFinished;
+            );      
     }
 
-    private async Task ExitGame()
+    private async Task ExitGame(bool deletePlayer)
     {
         if (Session != null && Me != null)
         {
             Session.OnPlayerJoined -= Session_OnPlayerJoined;
             Session.OnGameChanged -= Session_OnGameChanged;
             Session.OnRoundFinished -= Session_OnRoundFinished;
-            await SessionService.RemovePlayerFromSessionAsync(Session, Me);
+            Session.OnPlayerLost -= Session_OnPlayerLost;
+
+            if (deletePlayer)
+                await SessionService.RemovePlayerFromSessionAsync(Session, Me);
         }
 
         Nav.NavigateTo($"/tables");

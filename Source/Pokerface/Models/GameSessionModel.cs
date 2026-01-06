@@ -2,6 +2,7 @@
 using Pokerface.Enums;
 using Pokerface.Services;
 using Pokerface.Services.DB;
+using System.Threading.Tasks;
 
 namespace Pokerface.Models
 {
@@ -13,6 +14,7 @@ namespace Pokerface.Models
         public EventHandler? OnGameChanged;
         public EventHandler? OnRoundFinished;
 
+        public event Func<PlayerModel, Task> OnPlayerLost = player => Task.CompletedTask;
         public int Id { get; set; }
 
         public TableModel? GameTable { get; set; } = new TableModel();
@@ -60,7 +62,7 @@ namespace Pokerface.Models
             // If the next player is sitting out or left, auto-fold
             if (player.IsNext)
             {
-                OnPlayerActionComitted(player, new PlayerAction { ActionType = EnumPlayerAction.Fold });
+                await OnPlayerActionComitted(player, new PlayerAction { ActionType = EnumPlayerAction.Fold });
                 return;
             }
 
@@ -82,7 +84,7 @@ namespace Pokerface.Models
 
 
 
-        public void StartGame()
+        public async Task StartGame()
         {
             if (_dbTableService == null || PlayersPending == null || GameTable == null || CurrentGame == null)
                 throw new ArgumentNullException("null objects found");
@@ -122,7 +124,7 @@ namespace Pokerface.Models
         }
 
 
-        private void OnPlayerActionComitted(PlayerModel player, PlayerAction action)
+        private async Task OnPlayerActionComitted(PlayerModel player, PlayerAction action)
         {
             if (_dbTableService == null || PlayersPending == null || GameTable == null || CurrentGame == null)
                 throw new ArgumentNullException("null objects found");
@@ -216,8 +218,7 @@ namespace Pokerface.Models
             if (activePlayers.Count == 1)
             {
                 // Only one player left: assign full pot and finish the round
-                CalculateWinner();
-                OnGameChanged?.Invoke(this, EventArgs.Empty);
+                await CalculateWinner();
                 return;
             }
 
@@ -244,8 +245,7 @@ namespace Pokerface.Models
 
                     case BettingRound.River:
                         CurrentGame.CurrentRound = BettingRound.Showdown;
-                        CalculateWinner();
-                        OnGameChanged?.Invoke(this, EventArgs.Empty);
+                        await CalculateWinner();
                         return;
                 }
             }
@@ -262,7 +262,7 @@ namespace Pokerface.Models
             // If the next player is sitting out or left, auto-fold
             if (nextPlayer.IsSittingOut)
             {
-                OnPlayerActionComitted(nextPlayer, new PlayerAction { ActionType = EnumPlayerAction.Fold });
+                await OnPlayerActionComitted(nextPlayer, new PlayerAction { ActionType = EnumPlayerAction.Fold });
                 return;
             }
 
@@ -270,7 +270,7 @@ namespace Pokerface.Models
 
             // Check if betting round is complete
             if (IsBettingRoundComplete())
-                AdvanceRound();
+                await AdvanceRound();
 
             OnGameChanged?.Invoke(this, EventArgs.Empty);
         }
@@ -363,7 +363,7 @@ namespace Pokerface.Models
 
 
 
-        private void AdvanceRound()
+        private async Task AdvanceRound()
         {
             if (_dbTableService == null || PlayersPending == null || GameTable == null || CurrentGame == null || AvailableActions == null)
                 throw new ArgumentNullException("null objects found");
@@ -398,7 +398,7 @@ namespace Pokerface.Models
 
                 case BettingRound.River:
                     CurrentGame.CurrentRound = BettingRound.Showdown;
-                    CalculateWinner();
+                    await CalculateWinner();
                     return;
             }
 
@@ -456,7 +456,7 @@ namespace Pokerface.Models
         }
 
 
-        private void CalculateWinner()
+        private async Task CalculateWinner()
         {
             if (_dbTableService == null || PlayersPending == null || GameTable == null || CurrentGame == null || AvailableActions == null)
                 throw new ArgumentNullException("null objects found");
@@ -500,10 +500,11 @@ namespace Pokerface.Models
                 return;
             }
 
-            // If there are multiple active players, proceed with normal hand evaluation
+            // Wait until showdown
             if (CommunityCards == null || CommunityCards.Count < 5)
-                return; // wait until showdown
+                return;
 
+            // Evaluate best hand for each player
             var bestHands = new Dictionary<PlayerModel, (int Rank, List<int> Tie, string HandName)>();
             foreach (var p in activePlayers)
             {
@@ -512,15 +513,45 @@ namespace Pokerface.Models
                 bestHands[p] = GamePlayHelpers.EvaluateBestHand(fullHand);
             }
 
-            int maxRank = bestHands.Values.Max(v => v.Rank);
-            var topPlayers = bestHands.Where(kv => kv.Value.Rank == maxRank)
-                                      .Select(kv => kv.Key)
-                                      .ToList();
+            // Compare hands with tie-breakers
+            int CompareHands((int Rank, List<int> Tie, string HandName) hand1,
+                             (int Rank, List<int> Tie, string HandName) hand2)
+            {
+                if (hand1.Rank != hand2.Rank)
+                    return hand1.Rank.CompareTo(hand2.Rank);
+
+                // Compare tie lists element by element
+                for (int i = 0; i < Math.Min(hand1.Tie.Count, hand2.Tie.Count); i++)
+                {
+                    if (hand1.Tie[i] != hand2.Tie[i])
+                        return hand1.Tie[i].CompareTo(hand2.Tie[i]);
+                }
+
+                return 0; // completely equal hands
+            }
+
+            // Find top hand(s)
+            var topPlayers = new List<PlayerModel>();
+            (int Rank, List<int> Tie, string HandName) bestHand = (0, new List<int>(), "");
+
+            foreach (var kv in bestHands)
+            {
+                if (bestHand.Rank == 0 || CompareHands(kv.Value, bestHand) > 0)
+                {
+                    topPlayers.Clear();
+                    topPlayers.Add(kv.Key);
+                    bestHand = kv.Value;
+                }
+                else if (CompareHands(kv.Value, bestHand) == 0)
+                {
+                    topPlayers.Add(kv.Key); // tie
+                }
+            }
 
             int potShare = CurrentGame.Pot / topPlayers.Count;
-
             CurrentGame.TheWinners = new();
 
+            // Assign results and distribute pot
             foreach (var p in CurrentGame.Players)
             {
                 var handName = bestHands.ContainsKey(p) ? bestHands[p].HandName : "Keine Hand";
@@ -528,7 +559,6 @@ namespace Pokerface.Models
                 if (topPlayers.Contains(p))
                 {
                     p.RemainingStack += potShare;
-
                     p.Result = topPlayers.Count > 1
                         ? $"Unentschieden!\nDeine beste Hand: {handName}\nGewonnener Pot: {potShare}"
                         : $"Du hast diese Runde gewonnen!\nDeine beste Hand: {handName}\nGewinnener Pot: {potShare}";
@@ -546,9 +576,27 @@ namespace Pokerface.Models
             CurrentGame.RoundLocked = false;
             CurrentGame.RoundFinished = true;
             AvailableActions.Clear();
-
             OnRoundFinished?.Invoke(this, EventArgs.Empty);
+
+            // Ensure players can cover blinds for next game
+            foreach (var player in CurrentGame.Players)
+            {
+                if (player.RemainingStack < CurrentGame.SmallBlind)
+                {
+                    //Kick out the player, but inform him                   
+                    if (OnPlayerLost != null)
+                    {
+                        foreach (var handler in OnPlayerLost.GetInvocationList().Cast<Func<PlayerModel, Task>>())
+                        {
+                            //_ = Task.Run(async () => await handler(player));
+                            await handler(player);
+                        }
+                    }
+                    await RemovePlayer(player);
+                }
+            }
         }
+
 
         public async ValueTask DisposeAsync()
         {
