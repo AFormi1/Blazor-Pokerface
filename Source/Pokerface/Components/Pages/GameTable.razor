@@ -243,47 +243,24 @@
     protected override void OnInitialized()
     {
         Session = SessionService.GetGameSessionById(SessionId);
-
-        if (Session == null)
-            return;
-
-        //Add a event listener, to detect when other players are joinung
-        Session.OnPlayerJoined += Session_OnPlayerJoined;
-        Session.OnGameChanged += Session_OnGameChanged;      
-    }
-
-    protected override void OnAfterRender(bool firstRender)
-    {
-        Session = SessionService.GetGameSessionById(SessionId);
-
         if (Session == null)
             return;
 
         Me = Session.GetPlayerById(PlayerID);
 
-        // Build chair → player lookup, per default its the pending players list when we load this page
-        PlayersByChair = Enumerable.Range(1, 8)
-            .ToDictionary(
-                chair => chair,
-                chair => Session.PlayersPending.FirstOrDefault(p => p.Chair == chair)
-            );
+        Session.OnPlayerJoined += Session_OnPlayerJoined;
+        Session.OnGameChanged += Session_OnGameChanged;
+        Session.OnRoundFinished += Session_OnRoundFinished;
+
+        RebuildPlayersByChair();
     }
+
 
     private void Session_OnPlayerJoined(object? sender, EventArgs e)
     {
         InvokeAsync(() =>
         {
-            // Rebuild chair lookup
-            PlayersByChair = Enumerable.Range(1, 8)
-                .ToDictionary(
-                    chair => chair,
-                    chair => Session!.CurrentGame.Players.FirstOrDefault(p => p.Chair == chair)
-                );
-
-            // Update cards
-            MapPlayerCards();
-
-            // Trigger UI refresh
+            RebuildPlayersByChair();
             StateHasChanged();
         });
     }
@@ -292,11 +269,30 @@
     {
         InvokeAsync(() =>
         {
+            RebuildPlayersByChair();
             MapPlayerCards();
             MapCommunityCards();
             StateHasChanged();
         });
     }
+
+    private void RebuildPlayersByChair()
+    {
+        if (Session == null)
+            return;
+
+        var sourcePlayers =
+            Session.CurrentGame.RoundLocked
+                ? Session.CurrentGame.Players   // game running
+                : Session.PlayersPending;       // lobby
+
+        PlayersByChair = Enumerable.Range(1, 8)
+            .ToDictionary(
+                chair => chair,
+                chair => sourcePlayers.FirstOrDefault(p => p.Chair == chair)
+            );
+    }
+
 
     private void Session_OnRoundFinished(object? sender, EventArgs e)
     {
@@ -304,7 +300,6 @@
         {
             StateHasChanged();
         });
-
     }
 
     private void MapPlayerCards()
@@ -411,11 +406,11 @@
     private async Task ExitGame()
     {
         if (Session != null && Me != null)
-        {           
+        {
             Session.OnPlayerJoined -= Session_OnPlayerJoined;
             Session.OnGameChanged -= Session_OnGameChanged;
             Session.OnRoundFinished -= Session_OnRoundFinished;
-            await SessionService.RemovePlayerFromSessionAsync(Session, Me);            
+            await SessionService.RemovePlayerFromSessionAsync(Session, Me);
         }
 
         Nav.NavigateTo($"/tables");
@@ -473,11 +468,11 @@
             return "visibility: hidden;";
 
         PlayersByChair.TryGetValue(id, out var p);
-        
+
         if (p == null)
             return "visibility: hidden;";
 
-        return p.IsNext ? "visibility: hidden;" : "visibility: visible;";
+        return p.IsNext ? "visibility: visible;" : "visibility: hidden;";
     }
 
 }
