@@ -18,6 +18,8 @@ namespace Pokerface.Models
 
         public BettingRound CurrentRound { get; set; }
 
+        public List<PlayerModel> TheWinners { get; set; } = new();
+
     }
 
 }

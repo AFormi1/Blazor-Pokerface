@@ -14,8 +14,8 @@
 
         AllIn,
 
-        PostSmallBlind,
-        PostBigBlind,
+        SmallBlind,
+        BigBlind,
         PostAnte,
 
         SitOut,
