@@ -1,4 +1,7 @@
 ﻿
+using System.Numerics;
+using System.Xml.Linq;
+
 namespace Pokerface.Models
 {
     public class PlayerModel
@@ -6,16 +9,16 @@ namespace Pokerface.Models
         public int Id { get; set; }
         public int Chair { get; set; }
         public string Name { get; set; } = string.Empty;
+        public int RemainingStack { get; set; } = 100;
         public bool IsNext { get; set; }
         public int CurrentBet { get; set; }
-        public int RemainingStack { get; set; } = 100;
         public bool HasFolded { get; set; }
         public bool IsSittingOut { get; set; }
         public bool HasPostedSmallBlind { get; set; }
         public bool HasPostedBigBlind { get; set; }
         public bool HasActedThisRound { get; set; }
-        public string? Result { get; set; }
         public bool AllIn { get; set; }
+        public string? Result { get; set; }
         public Card? Card1 { get; set; }
         public Card? Card2 { get; set; }
 
@@ -34,6 +37,13 @@ namespace Pokerface.Models
             Name = name;
         }
 
+        //Constructor to set the winner
+        public PlayerModel(PlayerModel winner, string winnerHand)
+        {
+            Name = winner.Name;
+            Result = winnerHand;
+        }
+
         public void TakeAction(ActionOption option)
         {
              PlayerAction action = new PlayerAction
@@ -43,6 +53,19 @@ namespace Pokerface.Models
                 };
 
             PlayerInput?.Invoke(this, action);
+        }
+
+        public void ResetRoundSettings()
+        {
+           CurrentBet = 0;
+           HasFolded = false;
+           HasActedThisRound = false;
+           HasPostedSmallBlind = false;
+           HasPostedBigBlind = false;
+           AllIn = false;
+           IsSittingOut = false;
+           IsNext = false;
+           Result = string.Empty;
         }
     }
 }

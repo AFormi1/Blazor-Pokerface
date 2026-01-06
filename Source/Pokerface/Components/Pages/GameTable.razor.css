@@ -161,7 +161,16 @@
     }
 
 
-.action-mask {
+.action-mask-game {
+    position: absolute;
+    top: calc(50% + 80px);
+    left: 50%;
+    transform: translate(-50%);
+    z-index: 100;
+}
+
+
+.action-mask-player {
     position: absolute;
     top: 1rem;
     right: 1rem;
@@ -170,26 +179,37 @@
     pointer-events: auto;
 }
 
+
 .action-panel {
     background-color: rgba(255, 165, 0, 0.6);
     border: 2px solid rgb(255, 165, 0);
     border-radius: 1rem;
-    padding: 1rem;
+    padding: 0.5rem;
     min-width: 350px;
-    color: white;
 }
 
 .action-title {
     font-weight: bold;
     text-align: center;
     white-space: pre-line;
+    color: white;
 }
 
 .action-buttons {
     display: flex;
+    flex-direction: column;
     gap: 0.5rem;
     justify-content: center;
     flex-wrap: wrap;
+    align-items:center;
+    margin:10px;
+}
+
+.btn-action {
+    font-weight: bold;
+    background-color: gray;
+    color: white;
+    width: 120px;
 }
 
 .action-slider {
@@ -204,6 +224,4 @@
     width: 100%; /* optional, ensures it spans container */
 }
 
-.btn-action {
-    font-weight: bold;
-}
+

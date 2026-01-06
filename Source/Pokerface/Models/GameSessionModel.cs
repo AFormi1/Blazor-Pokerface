@@ -23,6 +23,8 @@ namespace Pokerface.Models
 
         public GameContext CurrentGame { get; set; } = new GameContext();
 
+        private int CurrentPlayer;
+
         public List<ActionOption> AvailableActions { get; private set; } = new();
 
         public GameSessionModel(DbTableService dbTableService)
@@ -48,7 +50,7 @@ namespace Pokerface.Models
             GameTable.CurrentUsers = Players.Count;
 
             //Update the TableModel in DB
-            await _dbTableService.SaveItemAsync(GameTable);
+            await _dbTableService.SaveItemAsync(GameTable);         
 
             OnPlayerJoined?.Invoke(this, EventArgs.Empty);
 
@@ -77,42 +79,34 @@ namespace Pokerface.Models
         }
 
 
-        private int CurrentPlayer = -1;
-        private bool AllPlayersTookAction;
-
         public void StartGame()
         {
+
             //Reset the game
             CardSet = CardDeck.GenerateShuffledDeck();
             CommunityCards = new List<Card>();
             CurrentGame = new();
             AvailableActions = new();
+            CurrentGame.TheWinners = new();
+            CurrentPlayer = 0;
 
+            CurrentGame.RoundLocked = true;
+            CurrentGame.RoundFinished = false;
             CurrentGame.DealerIndex = (CurrentGame.DealerIndex + 1) % Players.Count;
             CurrentGame.SmallBlindIndex = (CurrentGame.DealerIndex + 1) % Players.Count;
             CurrentGame.BigBlindIndex = (CurrentGame.DealerIndex + 2) % Players.Count;
 
+            //start with the very first player
+            if (Players.Count < 2)
+                return;
 
             //subscribe to all player actions
             foreach (var player in Players)
             {
-                player.CurrentBet = 0;
+                player.ResetRoundSettings();
+                player.PlayerInput -= OnPlayerActionComitted;
                 player.PlayerInput += OnPlayerActionComitted;
-            }
 
-            CurrentGame.RoundLocked = true;
-            CurrentGame.RoundFinished = false;
-
-            //start with the very first player
-            if (!Players.Any())
-                return;
-
-            CurrentPlayer++;
-            Players[CurrentPlayer].IsNext = true;
-
-            // Give all players two cards
-            foreach (var player in Players)
-            {
                 player.Card1 = CardSet[0];
                 CardSet.RemoveAt(0);
 
@@ -120,11 +114,12 @@ namespace Pokerface.Models
                 CardSet.RemoveAt(0);
             }
 
+            Players[CurrentPlayer].IsNext = true;
 
             // Compute available actions for that player
             UpdateAvailableActions(Players[CurrentPlayer]);
 
-
+            CurrentPlayer++;
             OnGameChanged?.Invoke(this, EventArgs.Empty);
 
             //waiting for player input by event callback
@@ -178,7 +173,7 @@ namespace Pokerface.Models
                     player.HasActedThisRound = true;
                     break;
 
-                case EnumPlayerAction.PostSmallBlind:
+                case EnumPlayerAction.SmallBlind:
                     player.CurrentBet += CurrentGame.SmallBlind;
                     player.RemainingStack -= CurrentGame.SmallBlind;
                     CurrentGame.Pot += CurrentGame.SmallBlind;
@@ -187,7 +182,7 @@ namespace Pokerface.Models
                     // DO NOT mark HasActedThisRound yet
                     break;
 
-                case EnumPlayerAction.PostBigBlind:
+                case EnumPlayerAction.BigBlind:
                     player.CurrentBet += CurrentGame.BigBlind;
                     player.RemainingStack -= CurrentGame.BigBlind;
                     CurrentGame.Pot += CurrentGame.BigBlind;
@@ -261,14 +256,14 @@ namespace Pokerface.Models
             {
                 if (playerIndex == CurrentGame.SmallBlindIndex && !player.HasPostedSmallBlind)
                 {
-                    actions.Add(new ActionOption(EnumPlayerAction.PostSmallBlind));
+                    actions.Add(new ActionOption(EnumPlayerAction.SmallBlind));
                     AvailableActions = actions;
                     return;
                 }
 
                 if (playerIndex == CurrentGame.BigBlindIndex && !player.HasPostedBigBlind)
                 {
-                    actions.Add(new ActionOption(EnumPlayerAction.PostBigBlind));
+                    actions.Add(new ActionOption(EnumPlayerAction.BigBlind));
                     AvailableActions = actions;
                     return;
                 }
@@ -375,7 +370,7 @@ namespace Pokerface.Models
             if (!activePlayers.Any())
             {
                 foreach (var p in Players)
-                    p.Result = "Alle haben gefoldet.\nKein Gewinner.";
+                    p.Result = "Alle haben gefoldet.\nUnentschieden.";
                 return;
             }
 
@@ -395,6 +390,8 @@ namespace Pokerface.Models
 
             int potShare = CurrentGame.Pot / topPlayers.Count;
 
+            CurrentGame.TheWinners = new();
+
             foreach (var p in Players)
             {
                 var handName = bestHands.ContainsKey(p) ? bestHands[p].HandName : "Keine Hand";
@@ -405,17 +402,18 @@ namespace Pokerface.Models
 
                     p.Result = topPlayers.Count > 1
                         ? $"Unentschieden!\nDeine beste Hand: {handName}\nGewonnener Pot: {potShare}"
-                        : $"Du hast diese Runde gewonnen!\nDeine beste Hand: {handName}\nGewonnener Pot: {potShare}";
+                        : $"Du hast diese Runde gewonnen!\nDeine beste Hand: {handName}\nGewinnener Pot: {potShare}";
 
-                    p.IsNext = true; // Gewinner auf Tisch hervorheben
+                    CurrentGame.TheWinners.Add(new PlayerModel(p, handName));
                 }
                 else
                 {
                     p.Result = $"Du hast diese Runde verloren.\nDeine beste Hand: {handName}\nGewonnener Pot: 0";
                 }
+
+                p.IsNext = false;
             }
 
-            CurrentGame.Pot = 0; // Pot nach Auszahlung leeren
             CurrentGame.RoundLocked = false;
             CurrentGame.RoundFinished = true;
             AvailableActions.Clear();
@@ -425,7 +423,7 @@ namespace Pokerface.Models
 
 
 
-        private (int Rank, List<int> Tie, string HandName) EvaluateBestHand(List<Card> sevenCards)
+        private static (int Rank, List<int> Tie, string HandName) EvaluateBestHand(List<Card> sevenCards)
         {
             var cardValues = sevenCards.Select(c => (int)c.Rank).OrderByDescending(v => v).ToList();
             var groups = cardValues.GroupBy(v => v)
@@ -494,12 +492,6 @@ namespace Pokerface.Models
 
             return (100 + groups[0].Key, groups.Select(g => g.Key).ToList(), $"High Card: {RankToName(groups[0].Key)}");
         }
-
-
-
-
-
-
 
         private void DealFlop()
         {

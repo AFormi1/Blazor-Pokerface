@@ -107,15 +107,35 @@
     </div>
 
 
-
     <div class="table-actions-overlay">
-        <button class="btn btn-primary" @onclick="StartGame" disabled="@Session?.CurrentGame.RoundLocked">Starte Spiel</button>
-        <button class="btn btn-primary" @onclick="ExitGame">Verlassen</button>
+        <button class="btn btn-primary"
+                    @onclick="StartGame"
+                    disabled="@NewGameDisabled">
+                Starte Spiel
+            </button>
+            <button class="btn btn-primary" @onclick="ExitGame">Verlassen</button>
     </div>
 
     @if (Session != null)
     {
-        <div class="action-mask">
+        <div class="action-mask-game">
+            <div class="action-title">In Pot: @Session.CurrentGame.Pot</div>
+            @if (Session.CurrentGame.TheWinners.Any() == true)
+            {
+                <div class="action-title">
+                    @(Session.CurrentGame.TheWinners?.Count == 1 ? "Der Gewinner ist:" : "Die Gewinner sind:")
+                </div>
+                @if (Session.CurrentGame.TheWinners != null)
+                {
+                    @foreach (var player in Session.CurrentGame.TheWinners)
+                    {
+                        <div class="action-title">@player.Name hat mit @player.Result gewonnen!</div>
+                    }
+                }
+            }
+        </div>
+
+        <div class="action-mask-player">
             <div class="action-panel">
 
                 @if (Session.CurrentGame.RoundFinished == true)
@@ -126,14 +146,9 @@
                 }
                 else
                 {
-                    <div class="action-title">In Pot: @Session.CurrentGame.Pot</div>
-                    <br />
-
                     @if (Me?.IsNext == true)
                     {
-                        <div class="action-title">
-                            Your turn, @Me.Name
-                        </div>
+                        <div class="action-title">@Me.Name</div>
 
                         <div class="action-buttons">
                             @foreach (var action in Session.AvailableActions)
@@ -156,23 +171,14 @@
                                    max="@(Math.Min(Me.RemainingStack, Session.CurrentGame.MaxBet))"
                                    step="5"
                                    @bind="SelectedAmount" />
-
-
                         }
                     }
                     else
                     {
-                        <div class="action-title">
-                            Waiting for other players ...
-                        </div>
+                        <div class="action-title">Waiting for other players ...</div>
                     }
-
-                    <br />
                     <div class="bet-amount">Bet: @Me?.CurrentBet / Stack: @Me?.RemainingStack</div>
-
                 }
-
-
             </div>
         </div>
     }
@@ -187,6 +193,8 @@
 
     [Parameter]
     public int PlayerID { get; set; }
+
+    private bool NewGameDisabled => !(Session != null && Session.Players.Count >= 2 && !Session.CurrentGame.RoundLocked);
 
     private GameSessionModel? Session { get; set; }
 
@@ -376,7 +384,7 @@
 
     private async Task StartGame()
     {
-        Todo: StartNewGame logic and resets, debugging player actions, UI styling
+        //Todo: StartNewGame logic and resets, debugging player actions, UI styling
 
         if (Session == null)
             return;
