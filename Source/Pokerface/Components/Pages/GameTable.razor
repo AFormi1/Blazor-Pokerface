@@ -109,7 +109,7 @@
 
 
     <div class="table-actions-overlay">
-        <button class="btn btn-primary" @onclick="StartGame" disabled="@Session?.GameLocked">Starte Spiel</button>
+        <button class="btn btn-primary" @onclick="StartGame" disabled="@Session?.CurrentGame.RoundLocked">Starte Spiel</button>
         <button class="btn btn-primary" @onclick="ExitGame">Verlassen</button>
     </div>
 
@@ -121,6 +121,8 @@
                 @if (Session.CurrentGame.RoundFinished == true)
                 {
                     <div class="action-title">@Me?.Result</div>
+                    <br />
+                    <div class="bet-amount">My total stack: @Me?.RemainingStack</div>
                 }
                 else
                 {
@@ -167,7 +169,9 @@
 
                     <br />
                     <div class="bet-amount">Bet: @Me?.CurrentBet / Stack: @Me?.RemainingStack</div>
-                }                
+
+                }
+
 
             </div>
         </div>
@@ -372,8 +376,12 @@
 
     private async Task StartGame()
     {
+        Todo: StartNewGame logic and resets, debugging player actions, UI styling
+
         if (Session == null)
             return;
+
+        ClearAllCards();
 
         Session.StartGame();
         Session.OnRoundFinished += Session_OnRoundFinished;
