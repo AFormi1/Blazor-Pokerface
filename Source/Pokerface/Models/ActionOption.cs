@@ -6,8 +6,9 @@ namespace Pokerface.Models
     {
         public EnumPlayerAction ActionType { get; }
         public bool RequiresAmount { get; }
-
         public string Label => ActionType.ToString();
+
+        public int SelectedAmount { get; set; }
 
         public ActionOption(EnumPlayerAction actionType, bool requiresAmount = false)
         {

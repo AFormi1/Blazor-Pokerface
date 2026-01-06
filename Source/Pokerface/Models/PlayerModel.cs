@@ -8,9 +8,13 @@ namespace Pokerface.Models
         public string Name { get; set; } = string.Empty;
         public bool IsNext { get; set; }
         public int CurrentBet { get; set; }
-        public int RemainingBet { get; set; } = 100;
+        public int RemainingStack { get; set; } = 100;
         public bool HasFolded { get; set; }
         public bool IsSittingOut { get; set; }
+        public bool HasPostedSmallBlind { get; set; }
+        public bool HasPostedBigBlind { get; set; }
+        public bool HasActedThisRound { get; set; }
+        public bool AllIn { get; set; }
         public Card? Card1 { get; set; }
         public Card? Card2 { get; set; }
 
@@ -29,8 +33,14 @@ namespace Pokerface.Models
             Name = name;
         }
 
-        public void TakeAction(PlayerAction action)
+        public void TakeAction(ActionOption option)
         {
+             PlayerAction action = new PlayerAction
+                {
+                    ActionType = option.ActionType,
+                    CurrentBet = option.RequiresAmount ? option.SelectedAmount : 0
+                };
+
             PlayerInput?.Invoke(this, action);
         }
     }

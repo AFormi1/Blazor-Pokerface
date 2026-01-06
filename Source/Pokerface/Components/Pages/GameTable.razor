@@ -106,46 +106,62 @@
 
     </div>
 
+
+
     <div class="table-actions-overlay">
         <button class="btn btn-primary" @onclick="StartGame" disabled="@Session?.GameLocked">Starte Spiel</button>
         <button class="btn btn-primary" @onclick="ExitGame">Verlassen</button>
     </div>
 
-    @if (Session != null && Me?.IsNext == true)
+    @if (Session != null)
     {
         <div class="action-mask">
             <div class="action-panel">
 
-                <div class="action-title">
-                    Your turn, @Me.Name
-                </div>
+                <div class="action-title">In Pot: @Session.CurrentGame.Pot</div>
+                <br />
 
-                <div class="action-buttons">
-                    @foreach (var action in Session.AvailableActions)
-                    {
-                        <button class="btn btn-action"
-                                @onclick="() => CommitAction(action)">
-                            @action.Label
-                        </button>
-                    }
-                </div>
-
-                @if (Session.AvailableActions.Any(a => a.RequiresAmount))
+                @if (Me?.IsNext == true)
                 {
-                    @* Ensure slider starts at min bet *@
-                    @if (SelectedAmount < Session.GameSettings.MinBet)
+                    <div class="action-title">
+                        Your turn, @Me.Name
+                    </div>
+
+                    <div class="action-buttons">
+                        @foreach (var action in Session.AvailableActions)
+                        {
+                            <button class="btn btn-action"
+                                    @onclick="() => CommitAction(action)">
+                                @action.Label
+                            </button>
+                        }
+                    </div>
+
+                    @if (Session.AvailableActions.Any(a => a.RequiresAmount))
                     {
-                        SelectedAmount = Session.GameSettings.MinBet;
+                        @* Ensure slider starts at min bet *@
+                        @if (SelectedAmount < Session.CurrentGame.MinBet)
+                            SelectedAmount = Session.CurrentGame.MinBet;
+
+                        <input class="action-slider" type="range"
+                               min="@Session.CurrentGame.MinBet"
+                               max="@(Math.Min(Me.RemainingStack, Session.CurrentGame.MaxBet))"
+                               step="5"
+                               @bind="SelectedAmount" />
+
+
                     }
-
-                    <input class="action-slider" type="range"
-                           min="@Session.GameSettings.MinBet"
-                           max="@(Math.Min(Me.RemainingBet, Session.GameSettings.MaxBet))"
-                           step="5"
-                           @bind="SelectedAmount" />
-
-                    <div class="bet-amount">Bet: @SelectedAmount</div>
                 }
+                else
+                {
+                    <div class="action-title">
+                        Waiting for other players ...
+                    </div>
+                }
+
+                <br />
+                <div class="bet-amount">Bet: @Me?.CurrentBet / Stack: @Me?.RemainingStack</div>
+
             </div>
         </div>
     }
@@ -221,6 +237,7 @@
                 chair => Session.Players.FirstOrDefault(p => p.Chair == chair)
             );
 
+        MapCommunityCards();
         MapPlayerCards();
     }
 
@@ -248,6 +265,7 @@
         InvokeAsync(() =>
         {
             MapPlayerCards();
+            MapCommunityCards();
             StateHasChanged();
         });
 
@@ -255,33 +273,87 @@
 
     private void MapPlayerCards()
     {
-        foreach (var chair in PlayersByChair.Keys)
+        if (Session == null || Me == null)
+            return;
+
+        foreach (var (chair, player) in PlayersByChair)
         {
-            var player = PlayersByChair[chair];
             if (player == null)
                 continue;
 
-            if (Me == null)
-                return;
+            bool itsMe = player == Me;
+            bool showFace = itsMe || Session.CurrentGame.CurrentRound == BettingRound.Showdown;
 
-            bool itsMe = Me == player;
+            var (c1, c2) = GetPlayerCardSlots(chair);
 
-            PokerCardModel c1 = player.Card1 != null ? new PokerCardModel(player.Card1, itsMe) : new PokerCardModel();
-            PokerCardModel c2 = player.Card2 != null ? new PokerCardModel(player.Card2, itsMe) : new PokerCardModel();
+            if (player.Card1 != null)
+                c1.SetCard(player.Card1, showFace);
 
-            switch (chair)
-            {
-                case 1: Card_P11 = c1; Card_P12 = c2; break;
-                case 2: Card_P21 = c1; Card_P22 = c2; break;
-                case 3: Card_P31 = c1; Card_P32 = c2; break;
-                case 4: Card_P41 = c1; Card_P42 = c2; break;
-                case 5: Card_P51 = c1; Card_P52 = c2; break;
-                case 6: Card_P61 = c1; Card_P62 = c2; break;
-                case 7: Card_P71 = c1; Card_P72 = c2; break;
-                case 8: Card_P81 = c1; Card_P82 = c2; break;
-            }
+            if (player.Card2 != null)
+                c2.SetCard(player.Card2, showFace);
+
         }
     }
+
+
+    private void MapCommunityCards()
+    {
+        if (Session?.CommunityCards == null)
+            return;
+
+        var cards = Session.CommunityCards;
+
+        if (cards.Count > 0) Card_C1.SetCard(cards[0], true);
+        if (cards.Count > 1) Card_C2.SetCard(cards[1], true);
+        if (cards.Count > 2) Card_C3.SetCard(cards[2], true);
+        if (cards.Count > 3) Card_C4.SetCard(cards[3], true);
+        if (cards.Count > 4) Card_C5.SetCard(cards[4], true);
+    }
+
+    private (PokerCardModel c1, PokerCardModel c2) GetPlayerCardSlots(int chair)
+    {
+        return chair switch
+        {
+            1 => (Card_P11, Card_P12),
+            2 => (Card_P21, Card_P22),
+            3 => (Card_P31, Card_P32),
+            4 => (Card_P41, Card_P42),
+            5 => (Card_P51, Card_P52),
+            6 => (Card_P61, Card_P62),
+            7 => (Card_P71, Card_P72),
+            8 => (Card_P81, Card_P82),
+            _ => throw new ArgumentOutOfRangeException(nameof(chair))
+        };
+    }
+
+
+    private void ClearAllCards()
+    {
+        Card_C1.HideCard();
+        Card_C2.HideCard();
+        Card_C3.HideCard();
+        Card_C4.HideCard();
+        Card_C5.HideCard();
+
+        Card_P11.HideCard();
+        Card_P12.HideCard();
+        Card_P21.HideCard();
+        Card_P22.HideCard();
+        Card_P31.HideCard();
+        Card_P32.HideCard();
+        Card_P41.HideCard();
+        Card_P42.HideCard();
+        Card_P51.HideCard();
+        Card_P52.HideCard();
+        Card_P61.HideCard();
+        Card_P62.HideCard();
+        Card_P71.HideCard();
+        Card_P72.HideCard();
+        Card_P81.HideCard();
+        Card_P82.HideCard();
+    }
+
+
 
     private async Task StartGame()
     {
@@ -311,12 +383,8 @@
         if (!Me.IsNext)
             return;
 
-        var action = new PlayerAction
-        {
-            ActionType = option.ActionType,
-            CurrentBet = option.RequiresAmount ? SelectedAmount : 0
-        };
+        option.SelectedAmount = SelectedAmount;
 
-        Me.TakeAction(action);
+        Me.TakeAction(option);
     }
 }
