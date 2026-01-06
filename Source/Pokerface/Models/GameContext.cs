@@ -10,10 +10,10 @@ namespace Pokerface.Models
         public int MinBet { get; set; } = 5;
         public int MaxBet { get; set; } = 10000;
         public int Pot { get; set; }
-
         public int DealerIndex { get; set; }
         public int SmallBlindIndex { get; set; }
         public int BigBlindIndex { get; set; }
+        public bool RoundLocked { get; set; }
         public bool RoundFinished { get; set; }
 
         public BettingRound CurrentRound { get; set; }

@@ -12,8 +12,6 @@ namespace Pokerface.Models
         public EventHandler? OnGameChanged;
         public EventHandler? OnRoundFinished;
 
-        public bool GameLocked { get; set; }
-
         public int Id { get; set; }
 
         public TableModel GameTable { get; set; } = new TableModel();
@@ -73,7 +71,7 @@ namespace Pokerface.Models
             //if players is zero, close the game session ???
             if (GameTable.CurrentUsers == 0)
             {
-                GameLocked = false;
+                CurrentGame.RoundLocked = false;
                 CurrentGame.RoundFinished = false;
             }
         }
@@ -86,6 +84,7 @@ namespace Pokerface.Models
         {
             //Reset the game
             CardSet = CardDeck.GenerateShuffledDeck();
+            CommunityCards = new List<Card>();
             CurrentGame = new();
             AvailableActions = new();
 
@@ -98,11 +97,10 @@ namespace Pokerface.Models
             foreach (var player in Players)
             {
                 player.CurrentBet = 0;
-                player.RemainingStack = 100;
                 player.PlayerInput += OnPlayerActionComitted;
             }
 
-            GameLocked = true;
+            CurrentGame.RoundLocked = true;
             CurrentGame.RoundFinished = false;
 
             //start with the very first player
@@ -377,7 +375,7 @@ namespace Pokerface.Models
             if (!activePlayers.Any())
             {
                 foreach (var p in Players)
-                    p.Result = "Alle haben gefoldet.\r\nKein Gewinner.";
+                    p.Result = "Alle haben gefoldet.\nKein Gewinner.";
                 return;
             }
 
@@ -391,32 +389,40 @@ namespace Pokerface.Models
             }
 
             int maxRank = bestHands.Values.Max(v => v.Rank);
-            var topPlayers = bestHands.Where(kv => kv.Value.Rank == maxRank).Select(kv => kv.Key).ToList();
+            var topPlayers = bestHands.Where(kv => kv.Value.Rank == maxRank)
+                                      .Select(kv => kv.Key)
+                                      .ToList();
 
             int potShare = CurrentGame.Pot / topPlayers.Count;
 
             foreach (var p in Players)
             {
+                var handName = bestHands.ContainsKey(p) ? bestHands[p].HandName : "Keine Hand";
+
                 if (topPlayers.Contains(p))
                 {
-                    var handName = bestHands[p].HandName;
+                    p.RemainingStack += potShare; // Gewinn auszahlen
+
                     p.Result = topPlayers.Count > 1
-                        ? $"Unentschieden!\r\nDeine beste Hand ...\r\n{handName}"
-                        : $"Du hast diese Runde gewonnen! \r\nDeine beste Hand ...\r\n{handName}";
-                    p.RemainingStack += potShare;
+                        ? $"Unentschieden!\nDeine beste Hand: {handName}\nGewonnener Pot: {potShare}"
+                        : $"Du hast diese Runde gewonnen!\nDeine beste Hand: {handName}\nGewonnener Pot: {potShare}";
+
+                    p.IsNext = true; // Gewinner auf Tisch hervorheben
                 }
                 else
                 {
-                    var handName = bestHands.ContainsKey(p) ? bestHands[p].HandName : "Keine Hand";
-                    p.Result = $"Du hast diese Runde verloren.\r\nDeine beste Hand ...\r\n{handName}";
+                    p.Result = $"Du hast diese Runde verloren.\nDeine beste Hand: {handName}\nGewonnener Pot: 0";
                 }
             }
 
-            CurrentGame.Pot = 0;
+            CurrentGame.Pot = 0; // Pot nach Auszahlung leeren
+            CurrentGame.RoundLocked = false;
             CurrentGame.RoundFinished = true;
             AvailableActions.Clear();
+
             OnRoundFinished?.Invoke(this, EventArgs.Empty);
         }
+
 
 
         private (int Rank, List<int> Tie, string HandName) EvaluateBestHand(List<Card> sevenCards)
@@ -442,6 +448,7 @@ namespace Pokerface.Models
                     break;
                 }
             }
+            // Low-Ace straight (A-2-3-4-5)
             if (distinctValues.Contains((int)EnumCardRank.Ace) &&
                 distinctValues.Contains((int)EnumCardRank.Five) &&
                 distinctValues.Contains((int)EnumCardRank.Four) &&
@@ -452,35 +459,40 @@ namespace Pokerface.Models
             }
             bool isStraight = straightHigh != -1;
 
+            string RankToName(int rank) => Enum.GetName(typeof(EnumCardRank), rank) ?? rank.ToString();
+
             // Straight flush / Royal flush
             if (isFlush && isStraight)
-                return (900 + straightHigh, new List<int> { straightHigh }, "Straight Flush");
+                return (900 + straightHigh, new List<int> { straightHigh },
+                    straightHigh == (int)EnumCardRank.Ace ? "Royal Flush" : $"Straight Flush: {RankToName(straightHigh)} hoch");
 
             if (groups[0].Count() == 4)
-                return (800 + groups[0].Key, groups.Select(g => g.Key).ToList(), "Vierling");
+                return (800 + groups[0].Key, groups.Select(g => g.Key).ToList(), $"Vierling: {RankToName(groups[0].Key)}");
 
             if (groups[0].Count() == 3 && groups.Count > 1 && groups[1].Count() >= 2)
-                return (700 + groups[0].Key, new List<int> { groups[1].Key, groups[0].Key }, "Full House");
+                return (700 + groups[0].Key, new List<int> { groups[1].Key, groups[0].Key },
+                    $"Full House: {RankToName(groups[0].Key)} über {RankToName(groups[1].Key)}");
 
             if (isFlush)
             {
                 var flushCards = suitGroups.First().Select(c => (int)c.Rank).OrderByDescending(v => v).Take(5).ToList();
-                return (600 + flushCards[0], flushCards, "Flush");
+                return (600 + flushCards[0], flushCards, $"Flush: {RankToName(flushCards[0])} hoch");
             }
 
             if (isStraight)
-                return (500 + straightHigh, new List<int> { straightHigh }, "Straight");
+                return (500 + straightHigh, new List<int> { straightHigh }, $"Straight: {RankToName(straightHigh)} hoch");
 
             if (groups[0].Count() == 3)
-                return (400 + groups[0].Key, groups.Select(g => g.Key).ToList(), "Drilling");
+                return (400 + groups[0].Key, groups.Select(g => g.Key).ToList(), $"Drilling: {RankToName(groups[0].Key)}");
 
             if (groups[0].Count() == 2 && groups.Count > 1 && groups[1].Count() == 2)
-                return (300 + groups[0].Key, groups.Select(g => g.Key).ToList(), "Zwei Paare");
+                return (300 + groups[0].Key, groups.Select(g => g.Key).ToList(),
+                    $"Zwei Paare: {RankToName(groups[0].Key)} & {RankToName(groups[1].Key)}");
 
             if (groups[0].Count() == 2)
-                return (200 + groups[0].Key, groups.Select(g => g.Key).ToList(), "Ein Paar");
+                return (200 + groups[0].Key, groups.Select(g => g.Key).ToList(), $"Ein Paar: {RankToName(groups[0].Key)}");
 
-            return (100 + groups[0].Key, groups.Select(g => g.Key).ToList(), "High Card");
+            return (100 + groups[0].Key, groups.Select(g => g.Key).ToList(), $"High Card: {RankToName(groups[0].Key)}");
         }
 
 
