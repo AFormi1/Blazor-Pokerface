@@ -118,49 +118,56 @@
         <div class="action-mask">
             <div class="action-panel">
 
-                <div class="action-title">In Pot: @Session.CurrentGame.Pot</div>
-                <br />
-
-                @if (Me?.IsNext == true)
+                @if (Session.CurrentGame.RoundFinished == true)
                 {
-                    <div class="action-title">
-                        Your turn, @Me.Name
-                    </div>
-
-                    <div class="action-buttons">
-                        @foreach (var action in Session.AvailableActions)
-                        {
-                            <button class="btn btn-action"
-                                    @onclick="() => CommitAction(action)">
-                                @action.Label
-                            </button>
-                        }
-                    </div>
-
-                    @if (Session.AvailableActions.Any(a => a.RequiresAmount))
-                    {
-                        @* Ensure slider starts at min bet *@
-                        @if (SelectedAmount < Session.CurrentGame.MinBet)
-                            SelectedAmount = Session.CurrentGame.MinBet;
-
-                        <input class="action-slider" type="range"
-                               min="@Session.CurrentGame.MinBet"
-                               max="@(Math.Min(Me.RemainingStack, Session.CurrentGame.MaxBet))"
-                               step="5"
-                               @bind="SelectedAmount" />
-
-
-                    }
+                    <div class="action-title">@Me?.Result</div>
                 }
                 else
                 {
-                    <div class="action-title">
-                        Waiting for other players ...
-                    </div>
-                }
+                    <div class="action-title">In Pot: @Session.CurrentGame.Pot</div>
+                    <br />
 
-                <br />
-                <div class="bet-amount">Bet: @Me?.CurrentBet / Stack: @Me?.RemainingStack</div>
+                    @if (Me?.IsNext == true)
+                    {
+                        <div class="action-title">
+                            Your turn, @Me.Name
+                        </div>
+
+                        <div class="action-buttons">
+                            @foreach (var action in Session.AvailableActions)
+                            {
+                                <button class="btn btn-action"
+                                        @onclick="() => CommitAction(action)">
+                                    @action.Label
+                                </button>
+                            }
+                        </div>
+
+                        @if (Session.AvailableActions.Any(a => a.RequiresAmount))
+                        {
+                            @* Ensure slider starts at min bet *@
+                            @if (SelectedAmount < Session.CurrentGame.MinBet)
+                                SelectedAmount = Session.CurrentGame.MinBet;
+
+                            <input class="action-slider" type="range"
+                                   min="@Session.CurrentGame.MinBet"
+                                   max="@(Math.Min(Me.RemainingStack, Session.CurrentGame.MaxBet))"
+                                   step="5"
+                                   @bind="SelectedAmount" />
+
+
+                        }
+                    }
+                    else
+                    {
+                        <div class="action-title">
+                            Waiting for other players ...
+                        </div>
+                    }
+
+                    <br />
+                    <div class="bet-amount">Bet: @Me?.CurrentBet / Stack: @Me?.RemainingStack</div>
+                }                
 
             </div>
         </div>
@@ -268,6 +275,14 @@
             MapCommunityCards();
             StateHasChanged();
         });
+    }
+
+    private void Session_OnRoundFinished(object? sender, EventArgs e)
+    {
+        InvokeAsync(() =>
+        {
+            StateHasChanged();
+        });
 
     }
 
@@ -361,6 +376,7 @@
             return;
 
         Session.StartGame();
+        Session.OnRoundFinished += Session_OnRoundFinished;
     }
 
     private async Task ExitGame()
@@ -369,6 +385,7 @@
         {
             Session.OnPlayerJoined -= Session_OnPlayerJoined;
             Session.OnGameChanged -= Session_OnGameChanged;
+            Session.OnRoundFinished -= Session_OnRoundFinished;
             await SessionService.RemovePlayerFromSessionAsync(Session, Me);
         }
 

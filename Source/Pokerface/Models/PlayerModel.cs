@@ -14,6 +14,7 @@ namespace Pokerface.Models
         public bool HasPostedSmallBlind { get; set; }
         public bool HasPostedBigBlind { get; set; }
         public bool HasActedThisRound { get; set; }
+        public string? Result { get; set; }
         public bool AllIn { get; set; }
         public Card? Card1 { get; set; }
         public Card? Card2 { get; set; }
