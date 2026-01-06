@@ -1,8 +1,7 @@
 ﻿.poker-card {
-    width: 100%;
-    height: 100%;
+    width: 6rem;
+    aspect-ratio: 364 / 544;
     background-size: contain;
     background-repeat: no-repeat;
     background-position: center;
-    border-radius: 10px;
 }
