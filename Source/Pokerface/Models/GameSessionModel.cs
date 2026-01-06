@@ -1,4 +1,5 @@
-﻿using Pokerface.Enums;
+﻿using Pokerface.Components.Card;
+using Pokerface.Enums;
 using Pokerface.Services.DB;
 
 namespace Pokerface.Models
@@ -9,6 +10,7 @@ namespace Pokerface.Models
 
         public EventHandler? OnPlayerJoined;
         public EventHandler? OnGameChanged;
+        public EventHandler? OnRoundFinished;
 
         public bool GameLocked { get; set; }
 
@@ -70,7 +72,10 @@ namespace Pokerface.Models
 
             //if players is zero, close the game session ???
             if (GameTable.CurrentUsers == 0)
+            {
                 GameLocked = false;
+                CurrentGame.RoundFinished = false;
+            }
         }
 
 
@@ -98,6 +103,7 @@ namespace Pokerface.Models
             }
 
             GameLocked = true;
+            CurrentGame.RoundFinished = false;
 
             //start with the very first player
             if (!Players.Any())
@@ -245,6 +251,10 @@ namespace Pokerface.Models
             var actions = new List<ActionOption>();
             int playerIndex = Players.IndexOf(player);
 
+            //Game Finished
+            if (CurrentGame.CurrentRound == BettingRound.Showdown)
+                AvailableActions.Clear();
+
             // Fold is always available
             actions.Add(new ActionOption(EnumPlayerAction.Fold));
 
@@ -305,14 +315,13 @@ namespace Pokerface.Models
         }
 
 
-
-
         private void AdvanceRound()
         {
-            // Reset bets
+            // Reset bets and actions for new round
             foreach (var player in Players)
             {
                 player.CurrentBet = 0;
+                player.HasActedThisRound = false; // reset for new betting round
             }
 
             CurrentGame.CurrentBet = 0;
@@ -335,17 +344,149 @@ namespace Pokerface.Models
                     break;
 
                 case BettingRound.River:
+                    // This is the correct place to move to showdown
                     CurrentGame.CurrentRound = BettingRound.Showdown;
-                    // winner logic later
+
+                    CalculateWinner();
                     return;
             }
 
-            // First player to act is left of dealer (post-flop)
-            CurrentPlayer = (CurrentGame.DealerIndex + 1) % Players.Count;
-            Players[CurrentPlayer].IsNext = true;
+            // Only set the next player if we're not in Showdown yet
+            if (CurrentGame.CurrentRound != BettingRound.Showdown)
+            {
+                // First player to act is left of dealer
+                CurrentPlayer = (CurrentGame.DealerIndex + 1) % Players.Count;
+                Players[CurrentPlayer].IsNext = true;
 
-            UpdateAvailableActions(Players[CurrentPlayer]);
+                UpdateAvailableActions(Players[CurrentPlayer]);
+            }
+
+            OnGameChanged?.Invoke(this, EventArgs.Empty);
         }
+
+
+        private void CalculateWinner()
+        {
+            if (CommunityCards == null || CommunityCards.Count < 5)
+                return;
+
+            var activePlayers = Players
+                .Where(p => !p.HasFolded && p.Card1 != null && p.Card2 != null)
+                .ToList();
+
+            if (!activePlayers.Any())
+            {
+                foreach (var p in Players)
+                    p.Result = "Alle haben gefoldet.\r\nKein Gewinner.";
+                return;
+            }
+
+            // Bestes Hand-Ranking für jeden Spieler
+            var bestHands = new Dictionary<PlayerModel, (int Rank, List<int> Tie, string HandName)>();
+            foreach (var p in activePlayers)
+            {
+                var fullHand = new List<Card> { p.Card1!, p.Card2! };
+                fullHand.AddRange(CommunityCards);
+                bestHands[p] = EvaluateBestHand(fullHand);
+            }
+
+            int maxRank = bestHands.Values.Max(v => v.Rank);
+            var topPlayers = bestHands.Where(kv => kv.Value.Rank == maxRank).Select(kv => kv.Key).ToList();
+
+            int potShare = CurrentGame.Pot / topPlayers.Count;
+
+            foreach (var p in Players)
+            {
+                if (topPlayers.Contains(p))
+                {
+                    var handName = bestHands[p].HandName;
+                    p.Result = topPlayers.Count > 1
+                        ? $"Unentschieden!\r\nDeine beste Hand ...\r\n{handName}"
+                        : $"Du hast diese Runde gewonnen! \r\nDeine beste Hand ...\r\n{handName}";
+                    p.RemainingStack += potShare;
+                }
+                else
+                {
+                    var handName = bestHands.ContainsKey(p) ? bestHands[p].HandName : "Keine Hand";
+                    p.Result = $"Du hast diese Runde verloren.\r\nDeine beste Hand ...\r\n{handName}";
+                }
+            }
+
+            CurrentGame.Pot = 0;
+            CurrentGame.RoundFinished = true;
+            AvailableActions.Clear();
+            OnRoundFinished?.Invoke(this, EventArgs.Empty);
+        }
+
+
+        private (int Rank, List<int> Tie, string HandName) EvaluateBestHand(List<Card> sevenCards)
+        {
+            var cardValues = sevenCards.Select(c => (int)c.Rank).OrderByDescending(v => v).ToList();
+            var groups = cardValues.GroupBy(v => v)
+                                   .OrderByDescending(g => g.Count())
+                                   .ThenByDescending(g => g.Key)
+                                   .ToList();
+
+            var suitGroups = sevenCards.GroupBy(c => c.Suit)
+                                       .Where(g => g.Count() >= 5)
+                                       .ToList();
+            bool isFlush = suitGroups.Any();
+
+            var distinctValues = cardValues.Distinct().ToList();
+            int straightHigh = -1;
+            for (int i = 0; i <= distinctValues.Count - 5; i++)
+            {
+                if (distinctValues[i] - distinctValues[i + 4] == 4)
+                {
+                    straightHigh = distinctValues[i];
+                    break;
+                }
+            }
+            if (distinctValues.Contains((int)EnumCardRank.Ace) &&
+                distinctValues.Contains((int)EnumCardRank.Five) &&
+                distinctValues.Contains((int)EnumCardRank.Four) &&
+                distinctValues.Contains((int)EnumCardRank.Three) &&
+                distinctValues.Contains((int)EnumCardRank.Two))
+            {
+                straightHigh = 5;
+            }
+            bool isStraight = straightHigh != -1;
+
+            // Straight flush / Royal flush
+            if (isFlush && isStraight)
+                return (900 + straightHigh, new List<int> { straightHigh }, "Straight Flush");
+
+            if (groups[0].Count() == 4)
+                return (800 + groups[0].Key, groups.Select(g => g.Key).ToList(), "Vierling");
+
+            if (groups[0].Count() == 3 && groups.Count > 1 && groups[1].Count() >= 2)
+                return (700 + groups[0].Key, new List<int> { groups[1].Key, groups[0].Key }, "Full House");
+
+            if (isFlush)
+            {
+                var flushCards = suitGroups.First().Select(c => (int)c.Rank).OrderByDescending(v => v).Take(5).ToList();
+                return (600 + flushCards[0], flushCards, "Flush");
+            }
+
+            if (isStraight)
+                return (500 + straightHigh, new List<int> { straightHigh }, "Straight");
+
+            if (groups[0].Count() == 3)
+                return (400 + groups[0].Key, groups.Select(g => g.Key).ToList(), "Drilling");
+
+            if (groups[0].Count() == 2 && groups.Count > 1 && groups[1].Count() == 2)
+                return (300 + groups[0].Key, groups.Select(g => g.Key).ToList(), "Zwei Paare");
+
+            if (groups[0].Count() == 2)
+                return (200 + groups[0].Key, groups.Select(g => g.Key).ToList(), "Ein Paar");
+
+            return (100 + groups[0].Key, groups.Select(g => g.Key).ToList(), "High Card");
+        }
+
+
+
+
+
 
 
         private void DealFlop()

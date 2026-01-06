@@ -14,6 +14,7 @@ namespace Pokerface.Models
         public int DealerIndex { get; set; }
         public int SmallBlindIndex { get; set; }
         public int BigBlindIndex { get; set; }
+        public bool RoundFinished { get; set; }
 
         public BettingRound CurrentRound { get; set; }
 
