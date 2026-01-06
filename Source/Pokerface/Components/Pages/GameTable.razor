@@ -116,7 +116,7 @@
         <button class="btn btn-primary" @onclick="ExitGame">Verlassen</button>
     </div>
 
-    @if (Session != null)
+    @if (Session != null && Session.CurrentGame != null)
     {
         <div class="action-mask-game">
             <div class="action-title">In Pot: @Session.CurrentGame.Pot</div>
@@ -147,36 +147,40 @@
                 else
                 {
                     @if (Me?.IsNext == true)
-                    {
-                        <div class="action-title">@Me.Name</div>
+                    {  
+                        @if(Session != null && Session.AvailableActions != null) 
+                        {  
+                            <div class="action-title">@Me.Name</div>
 
-                        <div class="action-buttons">
-                            @foreach (var action in Session.AvailableActions)
+                            <div class="action-buttons">
+                                                       
+                                    @foreach (var action in Session.AvailableActions)
+                                    {
+                                        <button class="btn btn-action"
+                                                @onclick="() => CommitAction(action)">
+                                            @action.Label
+                                        </button>
+                                    }                                          
+                            </div>
+
+                            @if (Session.AvailableActions.Any(a => a.RequiredAmount > 0))
                             {
-                                <button class="btn btn-action"
-                                        @onclick="() => CommitAction(action)">
-                                    @action.Label
-                                </button>
+                                var minAmount = Session.AvailableActions
+                                .Where(a => a.RequiredAmount > 0)
+                                .Min(a => a.RequiredAmount);
+
+                                var maxAmount = Math.Min(Me.RemainingStack, GetMaxBet());
+
+                                if (SelectedAmount < minAmount)
+                                    SelectedAmount = minAmount;
+
+                                <input type="range"
+                                       min="@minAmount"
+                                       max="@maxAmount"
+                                       step="5"
+                                       @bind-value="SelectedAmount"
+                                       @bind-value:event="oninput" />
                             }
-                        </div>
-
-                        @if (Session.AvailableActions.Any(a => a.RequiredAmount > 0))
-                        {
-                            var minAmount = Session.AvailableActions
-                            .Where(a => a.RequiredAmount > 0)
-                            .Min(a => a.RequiredAmount);
-
-                            var maxAmount = Math.Min(Me.RemainingStack, GetMaxBet());
-
-                            if (SelectedAmount < minAmount)
-                                SelectedAmount = minAmount;
-
-                            <input type="range"
-                                   min="@minAmount"
-                                   max="@maxAmount"
-                                   step="5"
-                                   @bind-value="SelectedAmount"
-                                   @bind-value:event="oninput" />
                         }
                     }
                     else
@@ -200,7 +204,20 @@
     [Parameter]
     public int PlayerID { get; set; }
 
-    private bool NewGameDisabled => !(Session != null && Session.PlayersPending.Count >= 2 && !Session.CurrentGame.RoundLocked);
+    public bool NewGameDisabled
+    {
+        get
+        {
+            if (Session == null)
+                return true;
+            if (Session.PlayersPending == null)
+                return true;
+            if (Session.CurrentGame == null)
+                return true;
+
+            return !(Session.PlayersPending.Count >= 2 && !Session.CurrentGame.RoundLocked);
+        }
+    }
 
     private GameSessionModel? Session { get; set; }
 
@@ -210,10 +227,6 @@
     private int SelectedAmount = 0;
 
     #region UI elements
-
-    private ElementReference TableImageRef;
-    private DotNetObjectReference<GameTable>? dotNetRef;
-
 
     private PokerCardModel Card_P11 = new();
     private PokerCardModel Card_P12 = new();
@@ -278,13 +291,16 @@
 
     private void RebuildPlayersByChair()
     {
-        if (Session == null)
+        if (Session == null || Session.CurrentGame == null)
             return;
 
         var sourcePlayers =
             Session.CurrentGame.RoundLocked
                 ? Session.CurrentGame.Players   // game running
                 : Session.PlayersPending;       // lobby
+
+        if (sourcePlayers == null)
+            return;
 
         PlayersByChair = Enumerable.Range(1, 8)
             .ToDictionary(
@@ -304,8 +320,8 @@
 
     private void MapPlayerCards()
     {
-        if (Session == null || Me == null)
-            return;
+        if (Session == null || Session.CurrentGame == null || Me == null)
+            throw new ArgumentNullException("objects are null");
 
         foreach (var (chair, player) in PlayersByChair)
         {
@@ -387,7 +403,7 @@
 
     private async Task StartGame()
     {
-        if (Session == null)
+        if (Session == null || Session.CurrentGame == null || Me == null)
             return;
 
         // Build chair → player lookup
@@ -431,7 +447,10 @@
 
     private int GetMaxBet()
     {
-        var max = Math.Min(Me!.RemainingStack, Session!.CurrentGame.MaxBet);
+        if (Session == null || Session.CurrentGame == null || Me == null)
+            throw new ArgumentNullException("objects are null");
+ 
+        var max = Math.Min(Me.RemainingStack, Session.CurrentGame.MaxBet);
 
         if (SelectedAmount < Session.CurrentGame.MinBet)
             SelectedAmount = Session.CurrentGame.MinBet;

@@ -50,7 +50,7 @@ namespace Pokerface.Services
             {
                 Id = nextID,
                 Name = $"Neuer Tisch {nextID}",
-                CurrentUsers = 0
+                CurrentPlayers = 0
             };
 
             return newTable;
