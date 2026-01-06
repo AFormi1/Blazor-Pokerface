@@ -1,5 +1,6 @@
 ﻿using Pokerface.Components.Card;
 using Pokerface.Enums;
+using Pokerface.Services;
 using Pokerface.Services.DB;
 
 namespace Pokerface.Models
@@ -228,17 +229,17 @@ namespace Pokerface.Models
                 switch (CurrentGame.CurrentRound)
                 {
                     case BettingRound.PreFlop:
-                        DealFlop();
+                        GamePlayHelpers.DealFlop(CardSet, CommunityCards);
                         CurrentGame.CurrentRound = BettingRound.Flop;
                         goto case BettingRound.Flop;
 
                     case BettingRound.Flop:
-                        DealTurn();
+                        GamePlayHelpers.DealTurn(CardSet, CommunityCards);
                         CurrentGame.CurrentRound = BettingRound.Turn;
                         goto case BettingRound.Turn;
 
                     case BettingRound.Turn:
-                        DealRiver();
+                        GamePlayHelpers.DealRiver(CardSet, CommunityCards);
                         CurrentGame.CurrentRound = BettingRound.River;
                         goto case BettingRound.River;
 
@@ -376,17 +377,17 @@ namespace Pokerface.Models
             switch (CurrentGame.CurrentRound)
             {
                 case BettingRound.PreFlop:
-                    DealFlop();
+                    GamePlayHelpers.DealFlop(CardSet, CommunityCards);
                     CurrentGame.CurrentRound = BettingRound.Flop;
                     break;
 
                 case BettingRound.Flop:
-                    DealTurn();
+                    GamePlayHelpers.DealTurn(CardSet, CommunityCards);
                     CurrentGame.CurrentRound = BettingRound.Turn;
                     break;
 
                 case BettingRound.Turn:
-                    DealRiver();
+                    GamePlayHelpers.DealRiver(CardSet, CommunityCards);
                     CurrentGame.CurrentRound = BettingRound.River;
                     break;
 
@@ -494,7 +495,7 @@ namespace Pokerface.Models
             {
                 var fullHand = new List<Card> { p.Card1!, p.Card2! };
                 fullHand.AddRange(CommunityCards);
-                bestHands[p] = EvaluateBestHand(fullHand);
+                bestHands[p] = GamePlayHelpers.EvaluateBestHand(fullHand);
             }
 
             int maxRank = bestHands.Values.Max(v => v.Rank);
@@ -536,121 +537,7 @@ namespace Pokerface.Models
         }
 
 
-
-
-        private static (int Rank, List<int> Tie, string HandName) EvaluateBestHand(List<Card> sevenCards)
-        {
-            var cardValues = sevenCards.Select(c => (int)c.Rank).OrderByDescending(v => v).ToList();
-            var groups = cardValues.GroupBy(v => v)
-                                   .OrderByDescending(g => g.Count())
-                                   .ThenByDescending(g => g.Key)
-                                   .ToList();
-
-            var suitGroups = sevenCards.GroupBy(c => c.Suit)
-                                       .Where(g => g.Count() >= 5)
-                                       .ToList();
-            bool isFlush = suitGroups.Any();
-
-            var distinctValues = cardValues.Distinct().ToList();
-            int straightHigh = -1;
-            for (int i = 0; i <= distinctValues.Count - 5; i++)
-            {
-                if (distinctValues[i] - distinctValues[i + 4] == 4)
-                {
-                    straightHigh = distinctValues[i];
-                    break;
-                }
-            }
-            // Low-Ace straight (A-2-3-4-5)
-            if (distinctValues.Contains((int)EnumCardRank.Ace) &&
-                distinctValues.Contains((int)EnumCardRank.Five) &&
-                distinctValues.Contains((int)EnumCardRank.Four) &&
-                distinctValues.Contains((int)EnumCardRank.Three) &&
-                distinctValues.Contains((int)EnumCardRank.Two))
-            {
-                straightHigh = 5;
-            }
-            bool isStraight = straightHigh != -1;
-
-            string RankToName(int rank) => Enum.GetName(typeof(EnumCardRank), rank) ?? rank.ToString();
-
-            // Straight flush / Royal flush
-            if (isFlush && isStraight)
-                return (900 + straightHigh, new List<int> { straightHigh },
-                    straightHigh == (int)EnumCardRank.Ace ? "Royal Flush" : $"Straight Flush: {RankToName(straightHigh)} hoch");
-
-            if (groups[0].Count() == 4)
-                return (800 + groups[0].Key, groups.Select(g => g.Key).ToList(), $"Vierling: {RankToName(groups[0].Key)}");
-
-            if (groups[0].Count() == 3 && groups.Count > 1 && groups[1].Count() >= 2)
-                return (700 + groups[0].Key, new List<int> { groups[1].Key, groups[0].Key },
-                    $"Full House: {RankToName(groups[0].Key)} über {RankToName(groups[1].Key)}");
-
-            if (isFlush)
-            {
-                var flushCards = suitGroups.First().Select(c => (int)c.Rank).OrderByDescending(v => v).Take(5).ToList();
-                return (600 + flushCards[0], flushCards, $"Flush: {RankToName(flushCards[0])} hoch");
-            }
-
-            if (isStraight)
-                return (500 + straightHigh, new List<int> { straightHigh }, $"Straight: {RankToName(straightHigh)} hoch");
-
-            if (groups[0].Count() == 3)
-                return (400 + groups[0].Key, groups.Select(g => g.Key).ToList(), $"Drilling: {RankToName(groups[0].Key)}");
-
-            if (groups[0].Count() == 2 && groups.Count > 1 && groups[1].Count() == 2)
-                return (300 + groups[0].Key, groups.Select(g => g.Key).ToList(),
-                    $"Zwei Paare: {RankToName(groups[0].Key)} & {RankToName(groups[1].Key)}");
-
-            if (groups[0].Count() == 2)
-                return (200 + groups[0].Key, groups.Select(g => g.Key).ToList(), $"Ein Paar: {RankToName(groups[0].Key)}");
-
-            return (100 + groups[0].Key, groups.Select(g => g.Key).ToList(), $"High Card: {RankToName(groups[0].Key)}");
-        }
-
-        private void DealFlop()
-        {
-            if (CardSet == null)
-                return;
-
-            BurnCard();
-            CommunityCards ??= new List<Card>();
-
-            CommunityCards.Add(CardSet[0]);
-            CommunityCards.Add(CardSet[1]);
-            CommunityCards.Add(CardSet[2]);
-
-            CardSet.RemoveRange(0, 3);
-        }
-
-        private void DealTurn()
-        {
-            if (CardSet == null)
-                return;
-
-            BurnCard();
-            CommunityCards!.Add(CardSet[0]);
-            CardSet.RemoveAt(0);
-        }
-
-        private void DealRiver()
-        {
-            if (CardSet == null)
-                return;
-
-            BurnCard();
-            CommunityCards!.Add(CardSet[0]);
-            CardSet.RemoveAt(0);
-        }
-
-        private void BurnCard()
-        {
-            if (CardSet == null)
-                return;
-
-            CardSet.RemoveAt(0);
-        }
-
+        
 
     }
 }
