@@ -114,12 +114,10 @@ namespace Pokerface.Models
                 CardSet.RemoveAt(0);
             }
 
+            CurrentPlayer = (CurrentGame.BigBlindIndex + 1) % Players.Count;
             Players[CurrentPlayer].IsNext = true;
-
-            // Compute available actions for that player
             UpdateAvailableActions(Players[CurrentPlayer]);
-
-            CurrentPlayer++;
+  
             OnGameChanged?.Invoke(this, EventArgs.Empty);
 
             //waiting for player input by event callback
@@ -241,17 +239,21 @@ namespace Pokerface.Models
 
         public void UpdateAvailableActions(PlayerModel player)
         {
+            AvailableActions.Clear();
+
+            // HARD GUARD
+            if (!player.IsNext)
+                return;
+
+            if (CurrentGame.CurrentRound == BettingRound.Showdown)
+                return;
+
             var actions = new List<ActionOption>();
             int playerIndex = Players.IndexOf(player);
 
-            //Game Finished
-            if (CurrentGame.CurrentRound == BettingRound.Showdown)
-                AvailableActions.Clear();
-
-            // Fold is always available
             actions.Add(new ActionOption(EnumPlayerAction.Fold));
 
-            // --- PRE-FLOP BLINDS (manual via UI) ---
+            // --- PRE-FLOP BLINDS ---
             if (CurrentGame.CurrentRound == BettingRound.PreFlop)
             {
                 if (playerIndex == CurrentGame.SmallBlindIndex && !player.HasPostedSmallBlind)
@@ -269,24 +271,83 @@ namespace Pokerface.Models
                 }
             }
 
-            // --- NORMAL ACTIONS ---
-            // Check / Call
             if (player.CurrentBet < CurrentGame.CurrentBet)
                 actions.Add(new ActionOption(EnumPlayerAction.Call));
             else
                 actions.Add(new ActionOption(EnumPlayerAction.Check));
 
-            // Bet / Raise
             if (CurrentGame.CurrentBet == 0)
-                actions.Add(new ActionOption(EnumPlayerAction.Bet, requiresAmount: true));
+                actions.Add(new ActionOption(EnumPlayerAction.Bet, true));
             else
-                actions.Add(new ActionOption(EnumPlayerAction.Raise, requiresAmount: true));
+                actions.Add(new ActionOption(EnumPlayerAction.Raise, true));
 
-            // All-in
             if (player.RemainingStack > 0)
                 actions.Add(new ActionOption(EnumPlayerAction.AllIn));
 
             AvailableActions = actions;
+        }
+
+        private void AdvanceRound()
+        {
+            // Clear per-round flags
+            foreach (var p in Players)
+            {
+                p.HasActedThisRound = false;
+                p.CurrentBet = 0;
+                p.IsNext = false;
+            }
+
+            CurrentGame.CurrentBet = 0;
+            AvailableActions.Clear();
+
+            switch (CurrentGame.CurrentRound)
+            {
+                case BettingRound.PreFlop:
+                    DealFlop();
+                    CurrentGame.CurrentRound = BettingRound.Flop;
+                    break;
+
+                case BettingRound.Flop:
+                    DealTurn();
+                    CurrentGame.CurrentRound = BettingRound.Turn;
+                    break;
+
+                case BettingRound.Turn:
+                    DealRiver();
+                    CurrentGame.CurrentRound = BettingRound.River;
+                    break;
+
+                case BettingRound.River:
+                    CurrentGame.CurrentRound = BettingRound.Showdown;
+                    CalculateWinner();
+                    return;
+            }
+
+            // Assign NEXT SINGLE player
+            CurrentPlayer = GetFirstActivePlayerAfterDealer();
+            Players[CurrentPlayer].IsNext = true;
+            UpdateAvailableActions(Players[CurrentPlayer]);
+        }
+
+        private int GetFirstActivePlayerAfterDealer()
+        {
+            if (Players.Count < 2)
+                return 0;
+
+            int index = (CurrentGame.DealerIndex + 1) % Players.Count;
+
+            // Find first active player (not folded, not sitting out)
+            for (int i = 0; i < Players.Count; i++)
+            {
+                var player = Players[index];
+                if (!player.HasFolded && !player.IsSittingOut)
+                    return index;
+
+                index = (index + 1) % Players.Count;
+            }
+
+            // fallback: return dealer if everyone else folded/sitting out
+            return CurrentGame.DealerIndex;
         }
 
 
@@ -308,54 +369,8 @@ namespace Pokerface.Models
         }
 
 
-        private void AdvanceRound()
-        {
-            // Reset bets and actions for new round
-            foreach (var player in Players)
-            {
-                player.CurrentBet = 0;
-                player.HasActedThisRound = false; // reset for new betting round
-            }
+        
 
-            CurrentGame.CurrentBet = 0;
-
-            switch (CurrentGame.CurrentRound)
-            {
-                case BettingRound.PreFlop:
-                    DealFlop();
-                    CurrentGame.CurrentRound = BettingRound.Flop;
-                    break;
-
-                case BettingRound.Flop:
-                    DealTurn();
-                    CurrentGame.CurrentRound = BettingRound.Turn;
-                    break;
-
-                case BettingRound.Turn:
-                    DealRiver();
-                    CurrentGame.CurrentRound = BettingRound.River;
-                    break;
-
-                case BettingRound.River:
-                    // This is the correct place to move to showdown
-                    CurrentGame.CurrentRound = BettingRound.Showdown;
-
-                    CalculateWinner();
-                    return;
-            }
-
-            // Only set the next player if we're not in Showdown yet
-            if (CurrentGame.CurrentRound != BettingRound.Showdown)
-            {
-                // First player to act is left of dealer
-                CurrentPlayer = (CurrentGame.DealerIndex + 1) % Players.Count;
-                Players[CurrentPlayer].IsNext = true;
-
-                UpdateAvailableActions(Players[CurrentPlayer]);
-            }
-
-            OnGameChanged?.Invoke(this, EventArgs.Empty);
-        }
 
 
         private void CalculateWinner()
