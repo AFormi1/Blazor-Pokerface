@@ -18,7 +18,7 @@ namespace Pokerface.Models
             ImageUrl = CardSvgProvider.GetBacksideSvg();
         }
 
-        public PokerCardModel(Card card, bool showFace)
+        public PokerCardModel(Card card, bool showFace, bool hide = false)
         {
             Suit = card.Suit;
             Rank = card.Rank;
@@ -26,6 +26,8 @@ namespace Pokerface.Models
             IsVisible = true;
             ImageUrl = ShowFace ? CardSvgProvider.GetFrontsideSvg(Suit, Rank) : CardSvgProvider.GetBacksideSvg();
         }
+
+    
 
         public void ShowFaceOrBack(bool showFace)
         {
@@ -41,8 +43,12 @@ namespace Pokerface.Models
             ShowFace = showFace;
 
             IsVisible = true;
-
             ImageUrl = ShowFace ? CardSvgProvider.GetFrontsideSvg(Suit, Rank) : CardSvgProvider.GetBacksideSvg();
+        }
+
+        public void HideCard()
+        {
+           IsVisible = false;           
         }
 
 

@@ -33,7 +33,7 @@ namespace Pokerface.Services
             }
 
             // All-in is always possible if player has chips
-            if (player.RemainingBet > 0)
+            if (player.RemainingStack > 0)
             {
                 actions.Add(new ActionOption(EnumPlayerAction.AllIn));
             }

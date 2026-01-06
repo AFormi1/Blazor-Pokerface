@@ -5,7 +5,8 @@
         PreFlop,
         Flop,
         Turn,
-        River
+        River,
+        Showdown
     }
 
 }
