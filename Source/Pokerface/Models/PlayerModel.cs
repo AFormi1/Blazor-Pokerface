@@ -22,9 +22,10 @@ namespace Pokerface.Models
         public Card? Card1 { get; set; }
         public Card? Card2 { get; set; }
 
-        public delegate void PlayerActionEventHandler(PlayerModel player, PlayerAction action);
+        public delegate Task PlayerActionEventHandler(PlayerModel player, PlayerAction action);
 
         public event PlayerActionEventHandler? PlayerInput;
+               
 
         public PlayerModel(int chair, string name)
         {
