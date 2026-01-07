@@ -122,9 +122,6 @@
             <div class="action-title">In Pot: @Session.CurrentGame.Pot</div>
             @if (Session.CurrentGame.TheWinners.Any() == true)
             {
-                <div class="action-title">
-                    @(Session.CurrentGame.TheWinners?.Count == 1 ? "Der Gewinner ist:" : "Die Gewinner sind:")
-                </div>
                 @if (Session.CurrentGame.TheWinners != null)
                 {
                     @foreach (var player in Session.CurrentGame.TheWinners)
@@ -257,21 +254,22 @@
     protected override void OnInitialized()
     {
         Session = SessionService.GetGameSessionById(SessionId);
+
         if (Session == null)
             return;
 
-        Me = Session.GetPlayerById(PlayerID);
-
-        Session.OnPlayerJoined += Session_OnPlayerJoined;
-        Session.OnGameChanged += Session_OnGameChanged;
-        Session.OnRoundFinished += Session_OnRoundFinished;
+        Session.OnSessionChanged += Session_OnSessionChanged;
         Session.OnPlayerLost += Session_OnPlayerLost;
 
+        Me = Session.GetPlayerById(PlayerID);
+
         RebuildPlayersByChair();
+        MapPlayerCards();
+        MapCommunityCards();
+
     }
 
-
-    private void Session_OnPlayerJoined(object? sender, EventArgs e)
+    private void Session_OnSessionChanged()
     {
         InvokeAsync(() =>
         {
@@ -282,98 +280,87 @@
         });
     }
 
-    private void Session_OnGameChanged(object? sender, EventArgs e)
-    {
-        InvokeAsync(() =>
-        {
-            RebuildPlayersByChair();
-            MapPlayerCards();
-            MapCommunityCards();
-            StateHasChanged();
-        });
-    }
 
-    private void Session_OnRoundFinished(object? sender, EventArgs e)
-    {
-        InvokeAsync(() =>
-        {
-            StateHasChanged();
-        });
-    }
-
-    private void Session_OnPlayerLost(PlayerModel player)
+    private void Session_OnPlayerLost(PlayerModel lostPlayer)
     {
         InvokeAsync(async () =>
         {
-            if (Me == null || Session == null || Session.CurrentGame == null || msgBox == null)
+            if (Me == null || msgBox == null)
                 return;
 
-            bool playerLostFound = false;
-
-            //hide cards if a player needed to go
-            foreach (var (chair, player) in PlayersByChair)
+            // --- I AM THE PLAYER WHO LOST ---
+            if (lostPlayer == Me)
             {
-                if (player == null)
-                    continue;
+                await msgBox.ShowAsync(
+                    "### You Lost! ###",
+                    "Da du zu wenig Geld hast, musst du das Spiel verlassen.\r\nDu kannst gerne nochmal beitreten!"
+                );
 
-                if (Me == player)
-                    continue;
-
-                if (Session.CurrentGame.CurrentRound != BettingRound.Showdown || player.RemainingStack >= Session.CurrentGame.SmallBlind)
-                    continue;
-
-                var (c1, c2) = GetPlayerCardSlots(chair);
-
-                if (player.Card1 == null || player.Card2 == null)
-                    continue;
-
-                c1.HideCard();
-                c2.HideCard();
-
-                playerLostFound = true;
-
-                await msgBox.ShowAsync($"### Player Lost! ###", $"Der Spieler {player.Name} hatte zu wenig Geld und musste das Spiel verlassen!");
-                continue;
-
-            }
-
-            if (playerLostFound)
-            {
-                RebuildPlayersByChair();
-                MapPlayerCards();
-                MapCommunityCards();
-                StateHasChanged();
+                await ExitGame(false);
                 return;
             }
 
-            await msgBox.ShowAsync("### You Lost! ###", "Da du zu wenig Geld hast, must du das Spiel verlassen!\r\nDu kannst gerne nochmal beitreten!");
+            // --- SOMEONE ELSE LOST ---
+            await msgBox.ShowAsync(
+                "### Player Lost! ###",
+                $"Der Spieler {lostPlayer.Name} hatte zu wenig Geld und musste das Spiel verlassen!"
+            );
 
-            await ExitGame(false);
+            // Optional visual cleanup
+            RebuildPlayersByChair();
+            MapPlayerCards();
+            MapCommunityCards();
+            StateHasChanged();
         });
     }
-
 
 
 
     private void RebuildPlayersByChair()
     {
-        if (Session == null || Session.CurrentGame == null)
+        if (Session == null)
             return;
 
         var sourcePlayers =
-            Session.CurrentGame.RoundLocked
+            Session.CurrentGame != null && Session.CurrentGame.RoundLocked
                 ? Session.CurrentGame.Players   // game running
                 : Session.PlayersPending;       // lobby
 
         if (sourcePlayers == null)
             return;
 
-        PlayersByChair = Enumerable.Range(1, 8)
-            .ToDictionary(
-                chair => chair,
-                chair => sourcePlayers.FirstOrDefault(p => p.Chair == chair)
-            );
+        // Keep track of which chairs are already assigned
+        var assignedChairs = new HashSet<int>();
+        PlayersByChair = new Dictionary<int, PlayerModel?>();
+
+        for (int chair = 1; chair <= 8; chair++)
+        {
+            // First, try to find a player who already has this chair
+            var player = sourcePlayers.FirstOrDefault(p => p.Chair == chair && !assignedChairs.Contains(chair));
+
+            if (player != null)
+            {
+                assignedChairs.Add(chair);
+                PlayersByChair[chair] = player;
+            }
+            else
+            {
+                // assign next unassigned player to this empty chair
+                player = sourcePlayers.FirstOrDefault(p => !assignedChairs.Contains(p.Chair));
+                if (player != null)
+                {
+                    player.Chair = chair; // assign new chair
+                    assignedChairs.Add(chair);
+                    PlayersByChair[chair] = player;
+                }
+                else
+                {
+                    PlayersByChair[chair] = null;
+                }
+            }
+        }
     }
+
 
 
 
@@ -414,6 +401,16 @@
         if (cards.Count > 2) Card_C3.SetCard(cards[2], true);
         if (cards.Count > 3) Card_C4.SetCard(cards[3], true);
         if (cards.Count > 4) Card_C5.SetCard(cards[4], true);
+
+        //Case new game
+        if (cards.Count == 0)
+        {
+            Card_C1.HideCard();
+            Card_C2.HideCard();
+            Card_C3.HideCard();
+            Card_C4.HideCard();
+            Card_C5.HideCard();
+        }
     }
 
     private (PokerCardModel c1, PokerCardModel c2) GetPlayerCardSlots(int chair)
@@ -482,9 +479,7 @@
     {
         if (Session != null && Me != null)
         {
-            Session.OnPlayerJoined -= Session_OnPlayerJoined;
-            Session.OnGameChanged -= Session_OnGameChanged;
-            Session.OnRoundFinished -= Session_OnRoundFinished;
+            Session.OnSessionChanged -= Session_OnSessionChanged;
             Session.OnPlayerLost -= Session_OnPlayerLost;
 
             if (deletePlayer)

@@ -69,7 +69,7 @@ namespace Pokerface.Services
 
         public async Task RemovePlayerFromSessionAsync(GameSessionModel session, PlayerModel player)
         {
-            await session.RemovePlayer(player, false);
+            await session.RemovePlayer(player);
 
             if (session.GameTable != null)
                 CurrentTableUsersChanged?.Invoke(this, session.GameTable);
