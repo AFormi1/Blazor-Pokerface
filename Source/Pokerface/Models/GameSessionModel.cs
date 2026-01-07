@@ -51,7 +51,7 @@ namespace Pokerface.Models
 
         }
 
-        public async Task RemovePlayer(PlayerModel player)
+        public async Task RemovePlayer(PlayerModel player, bool skipInvoke)
         {
             if (_dbTableService == null || PlayersPending == null || GameTable == null || CurrentGame == null)
                 throw new ArgumentNullException("null objects found in RemovePlayer");
@@ -73,7 +73,8 @@ namespace Pokerface.Models
             // Update DB
             await _dbTableService.SaveItemAsync(GameTable);
 
-            OnPlayerJoined?.Invoke(this, EventArgs.Empty);
+            if (!skipInvoke)
+                OnPlayerJoined?.Invoke(this, EventArgs.Empty);
 
             // If everyone left, close the session
             if (PlayersPending.All(p => p.IsSittingOut))
@@ -246,6 +247,7 @@ namespace Pokerface.Models
 
                     case BettingRound.River:
                         CurrentGame.CurrentRound = BettingRound.Showdown;
+                        OnGameChanged?.Invoke(this, EventArgs.Empty);
                         await CalculateWinner();
                         return;
                 }
@@ -496,6 +498,7 @@ namespace Pokerface.Models
                 CurrentGame.TheWinners = new() { new PlayerModel(winner, "Gewinner durch Fold") };
                 CurrentGame.RoundLocked = false;
                 CurrentGame.RoundFinished = true;
+                CurrentGame.Pot = 0;
                 AvailableActions.Clear();
                 OnRoundFinished?.Invoke(this, EventArgs.Empty);
                 return;
@@ -576,6 +579,7 @@ namespace Pokerface.Models
 
             CurrentGame.RoundLocked = false;
             CurrentGame.RoundFinished = true;
+            CurrentGame.Pot = 0;
             AvailableActions.Clear();
             OnRoundFinished?.Invoke(this, EventArgs.Empty);
 
@@ -585,8 +589,8 @@ namespace Pokerface.Models
                 if (player.RemainingStack < CurrentGame.SmallBlind)
                 {
                     //Kick out the player, but inform him
-                    OnPlayerLost?.Invoke(player);                    
-                    await RemovePlayer(player);
+                    await RemovePlayer(player, true);
+                    OnPlayerLost?.Invoke(player);
                 }
             }
         }

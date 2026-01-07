@@ -58,7 +58,7 @@ namespace Pokerface.Services
             if (session.GameTable == null)
                 return null;
 
-                PlayerModel player = new PlayerModel(session.GameTable.CurrentPlayers + 1, playerName);
+            PlayerModel player = new PlayerModel(session.GameTable.CurrentPlayers + 1, playerName);
             await session.AddPlayer(player);
 
             CurrentTableUsersChanged?.Invoke(this, session.GameTable);
@@ -69,7 +69,7 @@ namespace Pokerface.Services
 
         public async Task RemovePlayerFromSessionAsync(GameSessionModel session, PlayerModel player)
         {
-            await session.RemovePlayer(player);
+            await session.RemovePlayer(player, false);
 
             if (session.GameTable != null)
                 CurrentTableUsersChanged?.Invoke(this, session.GameTable);

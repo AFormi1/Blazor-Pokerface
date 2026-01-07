@@ -276,6 +276,8 @@
         InvokeAsync(() =>
         {
             RebuildPlayersByChair();
+            MapPlayerCards();
+            MapCommunityCards();
             StateHasChanged();
         });
     }
@@ -303,11 +305,46 @@
     {
         InvokeAsync(async () =>
         {
-            if (Me == null || msgBox == null)
+            if (Me == null || Session == null || Session.CurrentGame == null || msgBox == null)
                 return;
 
-            if (player != Me)
+            bool playerLostFound = false;
+
+            //hide cards if a player needed to go
+            foreach (var (chair, player) in PlayersByChair)
+            {
+                if (player == null)
+                    continue;
+
+                if (Me == player)
+                    continue;
+
+                if (Session.CurrentGame.CurrentRound != BettingRound.Showdown || player.RemainingStack >= Session.CurrentGame.SmallBlind)
+                    continue;
+
+                var (c1, c2) = GetPlayerCardSlots(chair);
+
+                if (player.Card1 == null || player.Card2 == null)
+                    continue;
+
+                c1.HideCard();
+                c2.HideCard();
+
+                playerLostFound = true;
+
+                await msgBox.ShowAsync($"### Player Lost! ###", $"Der Spieler {player.Name} hatte zu wenig Geld und musste das Spiel verlassen!");
+                continue;
+
+            }
+
+            if (playerLostFound)
+            {
+                RebuildPlayersByChair();
+                MapPlayerCards();
+                MapCommunityCards();
+                StateHasChanged();
                 return;
+            }
 
             await msgBox.ShowAsync("### You Lost! ###", "Da du zu wenig Geld hast, must du das Spiel verlassen!\r\nDu kannst gerne nochmal beitreten!");
 
