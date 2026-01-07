@@ -1,4 +1,4 @@
-﻿namespace Pokerface.Models
+﻿namespace Pokerface.Enums
 {
     public enum EnumCardPositions
     {

@@ -1,9 +1,7 @@
-﻿using System.Linq;
+﻿using Pokerface.Enums;
 
 namespace Pokerface.Models
-{
-   
-
+{  
     public static class CardDeck
     {
         private static readonly Random Random = new();
