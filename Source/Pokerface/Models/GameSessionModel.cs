@@ -525,7 +525,7 @@ namespace Pokerface.Models
                     p.IsNext = false;
                 }
 
-                CurrentGame.TheWinners = new() { new PlayerModel(winner, "Gewinner durch Fold") };
+                CurrentGame.TheWinners = new() { new PlayerModel(winner, "durch Fold") };
                 CurrentGame.RoundLocked = false;
                 CurrentGame.RoundFinished = true;
                 AvailableActions.Clear();
@@ -576,10 +576,18 @@ namespace Pokerface.Models
 
                 if (topPlayers.Contains(p))
                 {
+                    string kickerText = "";
+
+                    // If tie, show kicker cards
+                    if (topPlayers.Count > 1 && bestHands[p].Tie.Any())
+                    {
+                        kickerText = "\nKicker: " + string.Join(", ", bestHands[p].Tie.Select(t => GamePlayHelpers.CardValueToString(t)));
+                    }
+
                     p.RemainingStack += potShare;
                     p.Result = topPlayers.Count > 1
-                        ? $"Unentschieden!\nDeine beste Hand: {handName}\nGewonnener Pot: {potShare}"
-                        : $"Du hast diese Runde gewonnen!\nDeine beste Hand: {handName}\nGewinnener Pot: {potShare}";
+                        ? $"Unentschieden!\nDeine beste Hand {handName}{kickerText}\nGewonnener Pot: {potShare}"
+                        : $"Du hast diese Runde gewonnen!\nDeine beste Hand {handName}\nGewinnener Pot: {potShare}";
 
                     CurrentGame.TheWinners.Add(new PlayerModel(p, handName));
                 }
@@ -590,6 +598,7 @@ namespace Pokerface.Models
 
                 p.IsNext = false;
             }
+
 
             CurrentGame.RoundLocked = false;
             CurrentGame.RoundFinished = true;
