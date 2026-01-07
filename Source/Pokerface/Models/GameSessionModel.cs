@@ -415,21 +415,28 @@ namespace Pokerface.Models
             if (CurrentGame == null || CurrentGame.Players == null)
                 return;
 
-            bool playersHaveLostSession = false;
+            // Notify UI immediately
+            OnSessionChanged?.Invoke();
 
             // Ensure players can cover blinds for next game
             var bustedPlayers = CurrentGame.Players.Where(p => p.RemainingStack < CurrentGame.SmallBlind).ToList();
+
+            // Prepare all busted player tasks but do not start yet
+            List<Func<Task>> lostTasks = new();
+
             foreach (var busted in bustedPlayers)
             {
-                playersHaveLostSession = true;
-                await RemovePlayer(busted);
-                OnPlayerLost?.Invoke(busted);
+                lostTasks.Add(async () =>
+                {
+                    await Task.Delay(2000);
+                    OnPlayerLost?.Invoke(busted);
+                    await Task.Delay(2000);
+                    await RemovePlayer(busted);
+                });
             }
 
-            if (playersHaveLostSession)
-                return; //never invoke both events at the same time
-
-            OnSessionChanged?.Invoke();
+            // Now execute all tasks in parallel, but do not await them
+            _ = Task.WhenAll(lostTasks.Select(f => f()));
         }
 
         private int GetFirstActivePlayerAfterDealer()

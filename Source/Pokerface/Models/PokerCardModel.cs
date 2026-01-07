@@ -4,7 +4,7 @@ using Pokerface.Services;
 namespace Pokerface.Models
 {
     public class PokerCardModel
-    {          
+    {
         public string ImageUrl { get; private set; } = string.Empty;
         public bool IsVisible { get; private set; }
         public bool ShowFace { get; private set; }
@@ -27,7 +27,7 @@ namespace Pokerface.Models
             ImageUrl = ShowFace ? CardSvgProvider.GetFrontsideSvg(Suit, Rank) : CardSvgProvider.GetBacksideSvg();
         }
 
-    
+
 
         public void ShowFaceOrBack(bool showFace)
         {
@@ -36,8 +36,8 @@ namespace Pokerface.Models
         }
 
 
-        public void SetCard (Card card, bool showFace)
-        {
+        public void SetCard(Card card, bool showFace)
+        {       
             Suit = card.Suit;
             Rank = card.Rank;
             ShowFace = showFace;
@@ -48,7 +48,7 @@ namespace Pokerface.Models
 
         public void HideCard()
         {
-           IsVisible = false;           
+            IsVisible = false;
         }
 
 

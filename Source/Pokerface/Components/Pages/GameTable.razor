@@ -356,12 +356,20 @@
                 else
                 {
                     PlayersByChair[chair] = null;
+
+                    // Hide cards for null chairs
+                    PlayersByChair.Where(x => x.Value == null).ToList()
+                        .ForEach(x =>
+                        {
+                            var (c1, c2) = GetPlayerCardSlots(x.Key);
+                            c1.HideCard();
+                            c2.HideCard();
+                        });
+
                 }
             }
         }
     }
-
-
 
 
     private void MapPlayerCards()
