@@ -10,12 +10,12 @@ namespace Pokerface.Models
     {
         private readonly DbTableService? _dbTableService;
 
-        public EventHandler? OnPlayerJoined;
-        public EventHandler? OnGameChanged;
-        public EventHandler? OnRoundFinished;
 
         public delegate void PlayerLostEventHandler(PlayerModel player);
         public event PlayerLostEventHandler? OnPlayerLost;
+
+        public event Action? OnSessionChanged;
+
         public int Id { get; set; }
 
         public TableModel? GameTable { get; set; } = new TableModel();
@@ -47,11 +47,11 @@ namespace Pokerface.Models
             //Update the TableModel in DB
             await _dbTableService.SaveItemAsync(GameTable);
 
-            OnPlayerJoined?.Invoke(this, EventArgs.Empty);
+            OnSessionChanged?.Invoke();
 
         }
 
-        public async Task RemovePlayer(PlayerModel player, bool skipInvoke)
+        public async Task RemovePlayer(PlayerModel player)
         {
             if (_dbTableService == null || PlayersPending == null || GameTable == null || CurrentGame == null)
                 throw new ArgumentNullException("null objects found in RemovePlayer");
@@ -62,10 +62,7 @@ namespace Pokerface.Models
 
             // If the next player is sitting out or left, auto-fold
             if (player.IsNext)
-            {
                 await OnPlayerActionComitted(player, new PlayerAction { ActionType = EnumPlayerAction.Fold });
-                return;
-            }
 
             PlayersPending.Remove(player);
             GameTable.CurrentPlayers = PlayersPending.Count();
@@ -73,15 +70,14 @@ namespace Pokerface.Models
             // Update DB
             await _dbTableService.SaveItemAsync(GameTable);
 
-            if (!skipInvoke)
-                OnPlayerJoined?.Invoke(this, EventArgs.Empty);
-
             // If everyone left, close the session
             if (PlayersPending.All(p => p.IsSittingOut))
             {
                 CurrentGame.RoundLocked = false;
                 CurrentGame.RoundFinished = false;
             }
+
+            OnSessionChanged?.Invoke();
         }
 
 
@@ -94,6 +90,7 @@ namespace Pokerface.Models
             //Reset the game
             CardSet = CardDeck.GenerateShuffledDeck();
             CommunityCards = new List<Card>();
+
             //Add all players from the list to the current game
             CurrentGame = new(PlayersPending);
             AvailableActions = new();
@@ -120,7 +117,7 @@ namespace Pokerface.Models
             CurrentGame.Players[CurrentGame.CurrentPlayer].IsNext = true;
             UpdateAvailableActions(CurrentGame.Players[CurrentGame.CurrentPlayer]);
 
-            OnGameChanged?.Invoke(this, EventArgs.Empty);
+            OnSessionChanged?.Invoke();
 
             //waiting for player input by event callback
         }
@@ -247,7 +244,6 @@ namespace Pokerface.Models
 
                     case BettingRound.River:
                         CurrentGame.CurrentRound = BettingRound.Showdown;
-                        OnGameChanged?.Invoke(this, EventArgs.Empty);
                         await CalculateWinner();
                         return;
                 }
@@ -275,7 +271,7 @@ namespace Pokerface.Models
             if (IsBettingRoundComplete())
                 await AdvanceRound();
 
-            OnGameChanged?.Invoke(this, EventArgs.Empty);
+            OnSessionChanged?.Invoke();
         }
 
 
@@ -409,9 +405,32 @@ namespace Pokerface.Models
             CurrentGame.CurrentPlayer = GetFirstActivePlayerAfterDealer();
             CurrentGame.Players[CurrentGame.CurrentPlayer].IsNext = true;
             UpdateAvailableActions(CurrentGame.Players[CurrentGame.CurrentPlayer]);
+
+            OnSessionChanged?.Invoke();
         }
 
 
+        private async Task UpdateLooserAndSession()
+        {
+            if (CurrentGame == null || CurrentGame.Players == null)
+                return;
+
+            bool playersHaveLostSession = false;
+
+            // Ensure players can cover blinds for next game
+            var bustedPlayers = CurrentGame.Players.Where(p => p.RemainingStack < CurrentGame.SmallBlind).ToList();
+            foreach (var busted in bustedPlayers)
+            {
+                playersHaveLostSession = true;
+                await RemovePlayer(busted);
+                OnPlayerLost?.Invoke(busted);
+            }
+
+            if (playersHaveLostSession)
+                return; //never invoke both events at the same time
+
+            OnSessionChanged?.Invoke();
+        }
 
         private int GetFirstActivePlayerAfterDealer()
         {
@@ -464,6 +483,9 @@ namespace Pokerface.Models
             if (_dbTableService == null || PlayersPending == null || GameTable == null || CurrentGame == null || AvailableActions == null)
                 throw new ArgumentNullException("null objects found");
 
+            if (CurrentGame.RoundFinished)
+                return;
+
             // Get all active players (not folded, not sitting out)
             var activePlayers = CurrentGame.Players.Where(p => !p.HasFolded && !p.IsSittingOut).ToList();
 
@@ -476,7 +498,6 @@ namespace Pokerface.Models
                 CurrentGame.RoundLocked = false;
                 CurrentGame.RoundFinished = true;
                 AvailableActions.Clear();
-                OnRoundFinished?.Invoke(this, EventArgs.Empty);
                 return;
             }
 
@@ -485,7 +506,7 @@ namespace Pokerface.Models
             {
                 var winner = activePlayers[0];
                 winner.RemainingStack += CurrentGame.Pot;
-                winner.Result = $"Alle anderen haben gefoldet.\nDu gewinnst den Pot: {CurrentGame.Pot}";
+                winner.Result = $"Alle anderen haben gefoldet.\nDu gewinnst den Pot {CurrentGame.Pot}";
 
                 foreach (var p in CurrentGame.Players)
                 {
@@ -498,9 +519,7 @@ namespace Pokerface.Models
                 CurrentGame.TheWinners = new() { new PlayerModel(winner, "Gewinner durch Fold") };
                 CurrentGame.RoundLocked = false;
                 CurrentGame.RoundFinished = true;
-                CurrentGame.Pot = 0;
                 AvailableActions.Clear();
-                OnRoundFinished?.Invoke(this, EventArgs.Empty);
                 return;
             }
 
@@ -517,22 +536,6 @@ namespace Pokerface.Models
                 bestHands[p] = GamePlayHelpers.EvaluateBestHand(fullHand);
             }
 
-            // Compare hands with tie-breakers
-            int CompareHands((int Rank, List<int> Tie, string HandName) hand1,
-                             (int Rank, List<int> Tie, string HandName) hand2)
-            {
-                if (hand1.Rank != hand2.Rank)
-                    return hand1.Rank.CompareTo(hand2.Rank);
-
-                // Compare tie lists element by element
-                for (int i = 0; i < Math.Min(hand1.Tie.Count, hand2.Tie.Count); i++)
-                {
-                    if (hand1.Tie[i] != hand2.Tie[i])
-                        return hand1.Tie[i].CompareTo(hand2.Tie[i]);
-                }
-
-                return 0; // completely equal hands
-            }
 
             // Find top hand(s)
             var topPlayers = new List<PlayerModel>();
@@ -571,7 +574,7 @@ namespace Pokerface.Models
                 }
                 else
                 {
-                    p.Result = $"Du hast diese Runde verloren.\nDeine beste Hand: {handName}\nGewonnener Pot: 0";
+                    p.Result = $"Du hast diese Runde verloren.\nDeine beste Hand {handName}\nGewonnener Pot: 0";
                 }
 
                 p.IsNext = false;
@@ -579,20 +582,27 @@ namespace Pokerface.Models
 
             CurrentGame.RoundLocked = false;
             CurrentGame.RoundFinished = true;
-            CurrentGame.Pot = 0;
             AvailableActions.Clear();
-            OnRoundFinished?.Invoke(this, EventArgs.Empty);
 
-            // Ensure players can cover blinds for next game
-            foreach (var player in CurrentGame.Players)
+            await UpdateLooserAndSession();
+        }
+
+
+        private int CompareHands(
+            (int Rank, List<int> Tie, string HandName) hand1,
+            (int Rank, List<int> Tie, string HandName) hand2)
+        {
+            if (hand1.Rank != hand2.Rank)
+                return hand1.Rank.CompareTo(hand2.Rank);
+
+            // Compare tie lists element by element
+            for (int i = 0; i < Math.Min(hand1.Tie.Count, hand2.Tie.Count); i++)
             {
-                if (player.RemainingStack < CurrentGame.SmallBlind)
-                {
-                    //Kick out the player, but inform him
-                    await RemovePlayer(player, true);
-                    OnPlayerLost?.Invoke(player);
-                }
+                if (hand1.Tie[i] != hand2.Tie[i])
+                    return hand1.Tie[i].CompareTo(hand2.Tie[i]);
             }
+
+            return 0; // hands are completely equal
         }
 
 
