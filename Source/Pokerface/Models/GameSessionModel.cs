@@ -14,7 +14,8 @@ namespace Pokerface.Models
         public EventHandler? OnGameChanged;
         public EventHandler? OnRoundFinished;
 
-        public event Func<PlayerModel, Task> OnPlayerLost = player => Task.CompletedTask;
+        public delegate void PlayerLostEventHandler(PlayerModel player);
+        public event PlayerLostEventHandler? OnPlayerLost;
         public int Id { get; set; }
 
         public TableModel? GameTable { get; set; } = new TableModel();
@@ -583,15 +584,8 @@ namespace Pokerface.Models
             {
                 if (player.RemainingStack < CurrentGame.SmallBlind)
                 {
-                    //Kick out the player, but inform him                   
-                    if (OnPlayerLost != null)
-                    {
-                        foreach (var handler in OnPlayerLost.GetInvocationList().Cast<Func<PlayerModel, Task>>())
-                        {
-                            //_ = Task.Run(async () => await handler(player));
-                            await handler(player);
-                        }
-                    }
+                    //Kick out the player, but inform him
+                    OnPlayerLost?.Invoke(player);                    
                     await RemovePlayer(player);
                 }
             }
