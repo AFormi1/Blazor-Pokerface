@@ -25,11 +25,11 @@ namespace Pokerface.Models
         {
             
         }
-        public GameContext(List<PlayerModel> newPlayers)
+        public GameContext(List<PlayerModel> newPlayers, int lastDealerIndex)
         {
             Players = [.. newPlayers];
             RoundLocked = true;
-            DealerIndex = (DealerIndex + 1) % Players.Count;
+            DealerIndex = (lastDealerIndex + 1) % Players.Count;
             SmallBlindIndex = (DealerIndex + 1) % Players.Count;
             BigBlindIndex = (DealerIndex + 2) % Players.Count;
             TheWinners = new();

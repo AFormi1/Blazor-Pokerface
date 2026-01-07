@@ -90,7 +90,8 @@ namespace Pokerface.Models
             CommunityCards = new List<Card>();
 
             // Initialize the game context
-            CurrentGame = new GameContext(PlayersPending);
+            int lastDealerIndex = CurrentGame != null ? CurrentGame.DealerIndex : 0;
+            CurrentGame = new GameContext(PlayersPending, lastDealerIndex);
             AvailableActions = new();
 
             if (CurrentGame.Players.Count < 2)
