@@ -147,20 +147,20 @@
                 else
                 {
                     @if (Me?.IsNext == true)
-                    {  
-                        @if(Session != null && Session.AvailableActions != null) 
-                        {  
+                    {
+                        @if (Session != null && Session.AvailableActions != null)
+                        {
                             <div class="action-title">@Me.Name</div>
 
                             <div class="action-buttons">
-                                                       
-                                    @foreach (var action in Session.AvailableActions)
-                                    {
-                                        <button class="btn btn-action"
-                                                @onclick="() => CommitAction(action)">
-                                            @action.Label
-                                        </button>
-                                    }                                          
+
+                                @foreach (var action in Session.AvailableActions)
+                                {
+                                    <button class="btn btn-action"
+                                            @onclick="() => CommitAction(action)">
+                                        @action.Label
+                                    </button>
+                                }
                             </div>
 
                             @if (Session.AvailableActions.Any(a => a.RequiredAmount > 0))
@@ -291,6 +291,33 @@
         });
     }
 
+    private void Session_OnRoundFinished(object? sender, EventArgs e)
+    {
+        InvokeAsync(() =>
+        {
+            StateHasChanged();
+        });
+    }
+
+    private void Session_OnPlayerLost(PlayerModel player)
+    {
+        InvokeAsync(async () =>
+        {
+            if (Me == null || msgBox == null)
+                return;
+
+            if (player != Me)
+                return;
+
+            await msgBox.ShowAsync("### You Lost! ###", "Da du zu wenig Geld hast, must du das Spiel verlassen!\r\nDu kannst gerne nochmal beitreten!");
+
+            await ExitGame(false);
+        });
+    }
+
+
+
+
     private void RebuildPlayersByChair()
     {
         if (Session == null || Session.CurrentGame == null)
@@ -312,30 +339,6 @@
     }
 
 
-    private async Task Session_OnPlayerLost(PlayerModel player)
-    {
-        Console.WriteLine($"FrontendCode: Session_OnPlayerLost; ... {player.Id}");
-
-        if (Me == null || msgBox == null)
-            return;
-
-        if (player != Me) 
-            return; 
-
-        Console.WriteLine($"FrontendCode: Session_OnPlayerLost; ... what the fuck");
-        await msgBox.ShowAsync("You Lost!", "Da du zu wenig Geld hast, wirst du aus dem Spiel ausgeschlossen!\r\nDu kannst gerne nochmal beitreten!");
-
-        await ExitGame(false); 
-        
-    }
-
-    private void Session_OnRoundFinished(object? sender, EventArgs e)
-    {
-        InvokeAsync(() =>
-        {
-            StateHasChanged();
-        });
-    }
 
     private void MapPlayerCards()
     {
@@ -423,19 +426,20 @@
     private async Task StartGame()
     {
         if (Session == null || Session.CurrentGame == null || Me == null)
-            return;       
+            return;
 
         ClearAllCards();
 
         await Session.StartGame();
 
-         // Build chair → player lookup
+        // Build chair → player lookup
         PlayersByChair = Enumerable.Range(1, 8)
             .ToDictionary(
                 chair => chair,
                 chair => Session.CurrentGame.Players.FirstOrDefault(p => p.Chair == chair)
-            );      
+            );
     }
+
 
     private async Task ExitGame(bool deletePlayer)
     {
@@ -470,7 +474,7 @@
     {
         if (Session == null || Session.CurrentGame == null || Me == null)
             throw new ArgumentNullException("objects are null");
- 
+
         var max = Math.Min(Me.RemainingStack, Session.CurrentGame.MaxBet);
 
         if (SelectedAmount < Session.CurrentGame.MinBet)
