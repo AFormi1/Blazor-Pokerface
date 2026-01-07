@@ -1,0 +1,97 @@
+﻿<div class="@GetPlayerContainerClass(Position)">
+    @foreach (var item in GetPlayerElementsOrder(Position))
+    {
+        @item
+    }
+</div>
+
+@code {
+    [Parameter] public int PlayerChair { get; set; }
+    [Parameter] public PokerCardModel? Card1 { get; set; }
+    [Parameter] public PokerCardModel? Card2 { get; set; }
+    [Parameter] public PlayerModel? Me { get; set; }
+    [Parameter] public Dictionary<int, PlayerModel?>? PlayersByChair { get; set; }
+
+    private EnumPlayerLayout Position
+    {
+        get
+        {
+            return PlayerChair switch
+            {
+                4 => EnumPlayerLayout.Right,
+                5 or 6 or 7 => EnumPlayerLayout.Bottom,
+                8 => EnumPlayerLayout.Left,
+                _ => EnumPlayerLayout.Top
+            };
+        }
+    }
+
+    private string GetPlayerContainerClass(EnumPlayerLayout position) =>
+        position switch
+        {
+            EnumPlayerLayout.Top or EnumPlayerLayout.Bottom => "player-container-vertical",
+            EnumPlayerLayout.Right or EnumPlayerLayout.Left => "player-container-horizontal",
+            _ => "player-container-vertical"
+        };
+
+    private RenderFragment[] GetPlayerElementsOrder(EnumPlayerLayout position)
+    {
+        RenderFragment label = builder =>
+        {
+            builder.OpenElement(0, "div");
+            builder.AddAttribute(1, "class", "player-label");
+            builder.AddAttribute(2, "style", GetPlayerColor(PlayerChair));
+            builder.AddContent(3, GetPlayerText(PlayerChair));
+            builder.CloseElement();
+        };
+
+        RenderFragment cards = builder =>
+        {
+            builder.OpenElement(0, "div");
+            builder.AddAttribute(1, "class", "player-pair");
+
+            // Card 1
+            builder.OpenElement(2, "div");
+            builder.AddAttribute(3, "class", "card-spot");
+            builder.OpenComponent<PokerCard>(4);
+            builder.AddAttribute(5, "Model", Card1);
+            builder.CloseComponent();
+            builder.CloseElement();
+
+            // Card 2
+            builder.OpenElement(6, "div");
+            builder.AddAttribute(7, "class", "card-spot");
+            builder.OpenComponent<PokerCard>(8);
+            builder.AddAttribute(9, "Model", Card2);
+            builder.CloseComponent();
+            builder.CloseElement();
+
+            builder.CloseElement(); // close player-pair
+        };
+
+        RenderFragment active = builder =>
+        {
+            builder.OpenElement(0, "div");
+            builder.AddAttribute(1, "class", "player-active");
+            builder.AddAttribute(2, "style", GetPlayerActiveStyle(PlayerChair));
+            builder.CloseElement();
+        };
+
+        return position switch
+        {
+            EnumPlayerLayout.Top => new[] { label, cards, active },
+            EnumPlayerLayout.Bottom => new[] { active, cards, label },
+            EnumPlayerLayout.Right or EnumPlayerLayout.Left => new[] { label, cards, active },
+            _ => new[] { label, cards, active }
+        };
+    }
+
+    private string GetPlayerText(int id) =>
+        PlayersByChair != null && PlayersByChair.TryGetValue(id, out var p) ? p?.Name ?? $"Freier Platz {id}" : $"Freier Platz {id}";
+
+    private string GetPlayerColor(int id) =>
+        PlayersByChair != null && Me != null && PlayersByChair.TryGetValue(id, out var p) && p == Me ? "color: orange;" : "color: white;";
+
+    private string GetPlayerActiveStyle(int id) =>
+        PlayersByChair != null && PlayersByChair.TryGetValue(id, out var p) && p != null && p.IsNext ? "visibility: visible;" : "visibility: hidden;";
+}
