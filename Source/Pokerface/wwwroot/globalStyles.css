@@ -79,6 +79,84 @@
 
 
 
+/* =========================
+   PLAYER CONTAINERS
+   ========================= */
+
+.player-container-vertical,
+.player-container-horizontal {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.3em;
+    flex-direction: column;
+}
+
+/* =========================
+   PLAYER STATUS
+   ========================= */
+
+.player-active {
+    width: 2rem;
+    height: 2rem;
+    background-color: rgba(255, 165, 0, 0.6);
+    border: 0.15em solid rgb(255, 165, 0);
+    border-radius: 50%;
+}
+/* =========================
+   PLAYER LABEL
+   ========================= */
+
+.player-label {
+    color: white;
+    font-weight: bold;
+    text-align: center;
+    white-space: nowrap;
+    font-size: clamp(0.7rem, 1vw, 1rem);
+}
+/* =========================
+   PLAYER CARDS
+   ========================= */
+
+.player-pair {
+    display: flex;
+    gap: clamp(0.4rem, 1vw, 1rem);
+}
+
+.player-pair-horizontal-left,
+.player-pair-horizontal-right {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: clamp(0.4rem, 1vw, 1rem);
+    position: absolute;
+    top: 50%;
+    transform-origin: center;
+}
+
+.player-pair-horizontal-left {
+    left: 1.5rem;
+    transform: translateY(-50%) rotate(-90deg);
+}
+
+.player-pair-horizontal-right {
+    right: 1.5rem;
+    transform: translateY(-50%) rotate(90deg);
+}
+
+
+.card-spot {
+    height: 100%;
+    padding: 0.2rem;
+    border-radius: 0.8rem;
+    border: 1px solid white;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+}
+
+
 
 
   
