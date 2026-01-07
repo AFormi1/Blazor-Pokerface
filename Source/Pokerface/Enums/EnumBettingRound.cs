@@ -2,6 +2,7 @@
 {
     public enum BettingRound
     {
+        Ante,
         PreFlop,
         Flop,
         Turn,

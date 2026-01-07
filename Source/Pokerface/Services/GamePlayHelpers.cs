@@ -1,10 +1,26 @@
 ﻿using Pokerface.Enums;
 using Pokerface.Models;
+using System.Runtime.InteropServices;
 
 namespace Pokerface.Services
 {
     public static class GamePlayHelpers
     {
+        public static void DealPlayerCards(List<Card>? cardset, List<PlayerModel>? players)
+        {
+            if (cardset == null || players == null)
+                return;
+
+            BurnCard(cardset);
+
+            // Deal player cards
+            foreach (var player in players)
+            {
+                player.Card1 = cardset[0]; cardset.RemoveAt(0);
+                player.Card2 = cardset[0]; cardset.RemoveAt(0);
+            }
+        }
+
         public static void DealFlop(List<Card>? cardset, List<Card>? communityset)
         {
             if (cardset == null)

@@ -80,47 +80,43 @@ namespace Pokerface.Models
             OnSessionChanged?.Invoke();
         }
 
-
-
         public async Task StartGame()
         {
             if (_dbTableService == null || PlayersPending == null || GameTable == null || CurrentGame == null)
                 throw new ArgumentNullException("null objects found");
 
-            //Reset the game
+            // Reset the deck and community cards
             CardSet = CardDeck.GenerateShuffledDeck();
             CommunityCards = new List<Card>();
 
-            //Add all players from the list to the current game
-            CurrentGame = new(PlayersPending);
+            // Initialize the game context
+            CurrentGame = new GameContext(PlayersPending);
             AvailableActions = new();
 
-            //start with the very first player
             if (CurrentGame.Players.Count < 2)
                 return;
 
-            //subscribe to all player actions
+            // Reset player round flags
             foreach (var player in CurrentGame.Players)
             {
                 player.ResetRoundSettings();
                 player.PlayerInput -= OnPlayerActionComitted;
                 player.PlayerInput += OnPlayerActionComitted;
-
-                player.Card1 = CardSet[0];
-                CardSet.RemoveAt(0);
-
-                player.Card2 = CardSet[0];
-                CardSet.RemoveAt(0);
             }
 
-            CurrentGame.CurrentPlayer = (CurrentGame.BigBlindIndex + 1) % CurrentGame.Players.Count;
+            // Start with the Ante round
+            CurrentGame.CurrentRound = BettingRound.Ante;
+
+            // First active player posts ante
+            CurrentGame.CurrentPlayer = GetFirstActivePlayerAfterDealer();
             CurrentGame.Players[CurrentGame.CurrentPlayer].IsNext = true;
+
             UpdateAvailableActions(CurrentGame.Players[CurrentGame.CurrentPlayer]);
 
-            OnSessionChanged?.Invoke();
-
-            //waiting for player input by event callback
+            OnSessionChanged?.Invoke(); // Wait for player input for ante
         }
+
+
 
 
         private async Task OnPlayerActionComitted(PlayerModel player, PlayerAction action)
@@ -173,6 +169,15 @@ namespace Pokerface.Models
                     player.HasActedThisRound = true;
                     break;
 
+                case EnumPlayerAction.PostAnte:
+                    player.CurrentBet += CurrentGame.SmallBlind; // Ante equals SmallBlind
+                    player.RemainingStack -= CurrentGame.SmallBlind;
+                    CurrentGame.Pot += CurrentGame.SmallBlind;
+                    player.HasPostedAnte = true;
+                    player.HasActedThisRound = true;
+                    break;
+
+
                 case EnumPlayerAction.SmallBlind:
                     player.CurrentBet += CurrentGame.SmallBlind;
                     player.RemainingStack -= CurrentGame.SmallBlind;
@@ -187,12 +192,6 @@ namespace Pokerface.Models
                     CurrentGame.Pot += CurrentGame.BigBlind;
                     player.HasPostedBigBlind = true;
                     CurrentGame.CurrentBet = Math.Max(CurrentGame.CurrentBet, CurrentGame.BigBlind);
-                    break;
-
-                case EnumPlayerAction.PostAnte:
-                    player.CurrentBet += CurrentGame.SmallBlind; // or ante amount
-                    player.RemainingStack -= CurrentGame.SmallBlind;
-                    CurrentGame.Pot += CurrentGame.SmallBlind;
                     break;
 
                 case EnumPlayerAction.SitOut:
@@ -295,6 +294,13 @@ namespace Pokerface.Models
             // Fold is always available
             actions.Add(new ActionOption(EnumPlayerAction.Fold, 0));
 
+            if (CurrentGame.CurrentRound == BettingRound.Ante)
+            {
+                actions.Add(new ActionOption(EnumPlayerAction.PostAnte, CurrentGame.SmallBlind));
+                AvailableActions = actions;
+                return;
+            }
+
             // --- PRE-FLOP BLINDS ---
             if (CurrentGame.CurrentRound == BettingRound.PreFlop)
             {
@@ -380,6 +386,11 @@ namespace Pokerface.Models
 
             switch (CurrentGame.CurrentRound)
             {
+                case BettingRound.Ante:
+                    GamePlayHelpers.DealPlayerCards(CardSet, CurrentGame.Players);
+                    CurrentGame.CurrentRound = BettingRound.PreFlop;
+                    break;
+
                 case BettingRound.PreFlop:
                     GamePlayHelpers.DealFlop(CardSet, CommunityCards);
                     CurrentGame.CurrentRound = BettingRound.Flop;
@@ -466,23 +477,24 @@ namespace Pokerface.Models
 
         private bool IsBettingRoundComplete()
         {
-            if (_dbTableService == null || PlayersPending == null || GameTable == null || CurrentGame == null || AvailableActions == null)
-                throw new ArgumentNullException("null objects found");
+            if (CurrentGame == null || CurrentGame.Players == null)
+                throw new ArgumentNullException("objects are null");
 
             var activePlayers = CurrentGame.Players
                 .Where(p => !p.HasFolded && !p.IsSittingOut)
                 .ToList();
 
-            // Everyone has acted or is all-in
             if (!activePlayers.All(p => p.HasActedThisRound || p.AllIn))
                 return false;
 
-            // Everyone has matched the bet or is all-in
-            if (!activePlayers.All(p => p.CurrentBet == CurrentGame.CurrentBet || p.AllIn))
-                return false;
+            // Special check for Ante round
+            if (CurrentGame.CurrentRound == BettingRound.Ante)
+                return activePlayers.All(p => p.HasPostedAnte);
 
-            return true;
+            // Normal check for other rounds
+            return activePlayers.All(p => p.CurrentBet == CurrentGame.CurrentBet || p.AllIn);
         }
+
 
 
         private async Task CalculateWinner()
