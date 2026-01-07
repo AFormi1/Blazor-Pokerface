@@ -1,11 +1,10 @@
-﻿using Pokerface.Services;
-using System.Data.SqlTypes;
+﻿using Pokerface.Enums;
+using Pokerface.Services;
 
 namespace Pokerface.Models
 {
     public class PokerCardModel
     {
-          
         public string ImageUrl { get; private set; } = string.Empty;
         public bool IsVisible { get; private set; }
         public bool ShowFace { get; private set; }
@@ -19,7 +18,7 @@ namespace Pokerface.Models
             ImageUrl = CardSvgProvider.GetBacksideSvg();
         }
 
-        public PokerCardModel(Card card, bool showFace)
+        public PokerCardModel(Card card, bool showFace, bool hide = false)
         {
             Suit = card.Suit;
             Rank = card.Rank;
@@ -27,6 +26,8 @@ namespace Pokerface.Models
             IsVisible = true;
             ImageUrl = ShowFace ? CardSvgProvider.GetFrontsideSvg(Suit, Rank) : CardSvgProvider.GetBacksideSvg();
         }
+
+
 
         public void ShowFaceOrBack(bool showFace)
         {
@@ -35,15 +36,19 @@ namespace Pokerface.Models
         }
 
 
-        public void SetCard (Card card, bool showFace)
-        {
+        public void SetCard(Card card, bool showFace)
+        {       
             Suit = card.Suit;
             Rank = card.Rank;
             ShowFace = showFace;
 
             IsVisible = true;
-
             ImageUrl = ShowFace ? CardSvgProvider.GetFrontsideSvg(Suit, Rank) : CardSvgProvider.GetBacksideSvg();
+        }
+
+        public void HideCard()
+        {
+            IsVisible = false;
         }
 
 

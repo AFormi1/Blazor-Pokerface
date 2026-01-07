@@ -37,12 +37,12 @@
                     {
                         <tr>
                             <td>@table.Name</td>
-                            <td class="text-center">@table.CurrentUsers / @table.MaxUsers</td>
+                            <td class="text-center">@table.CurrentPlayers / @table.MaxUsers</td>
                             <td class="text-center">
                                 <a href="@($"/editable/{table.Id}")" class="btn btn-sm btn-primary align-content-center" style="width:90px;">Bearbeiten</a>
                             </td>
                             <td class="text-center">
-                                <button class="btn btn-sm @(table.CurrentUsers < table.MaxUsers ? "btn-primary" : "btn-secondary")"
+                                <button class="btn btn-sm @(table.CurrentPlayers < table.MaxUsers ? "btn-primary" : "btn-secondary")"
                                         style="width:90px;"
                                         @onclick="() => JoinTable(table)">
                                     Beitreten
@@ -91,7 +91,7 @@
             var table = tables.FirstOrDefault(t => t.Id == updatedTable.Id);
 
             if (table != null)
-                table.CurrentUsers = updatedTable.CurrentUsers;
+                table.CurrentPlayers = updatedTable.CurrentPlayers;
 
             StateHasChanged();
         });

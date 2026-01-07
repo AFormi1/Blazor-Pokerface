@@ -11,250 +11,329 @@
 
         <!-- Community cards -->
         <div class="community-cards">
-            <div class="card-spot"><PokerCard Model="Card_C1" /></div>
-            <div class="card-spot"><PokerCard Model="Card_C2" /></div>
-            <div class="card-spot"><PokerCard Model="Card_C3" /></div>
-            <div class="card-spot"><PokerCard Model="Card_C4" /></div>
-            <div class="card-spot"><PokerCard Model="Card_C5" /></div>
+            @for (int i = 0; i < CommunityCards.Count; i++)
+            {
+                <div class="card-spot"><PokerCard Model="CommunityCards[i]" /></div>
+            }
         </div>
 
-        <!-- Top players cards grouped pairwise -->
         <div class="players-top">
-            <!-- Player 1 -->
-            <div class="player-container-vertical">
-                <div class="player-label">@(PlayersByChair[1]?.Name ?? "Freier Platz 1")</div>
-                <div class="player-pair">
-                    <div class="card-spot"><PokerCard Model="Card_P11" /></div>
-                    <div class="card-spot"><PokerCard Model="Card_P12" /></div>
-                </div>
-            </div>
-            <!-- Player 2 -->
-            <div class="player-container-vertical">
-                <div class="player-label">@(PlayersByChair[2]?.Name ?? "Freier Platz 2")</div>
-                <div class="player-pair">
-                    <div class="card-spot"><PokerCard Model="Card_P21" /></div>
-                    <div class="card-spot"><PokerCard Model="Card_P22" /></div>
-                </div>
-            </div>
-            <!-- Player 3 -->
-            <div class="player-container-vertical">
-                <div class="player-label">@(PlayersByChair[3]?.Name ?? "Freier Platz 3")</div>
-                <div class="player-pair">
-                    <div class="card-spot"><PokerCard Model="Card_P31" /></div>
-                    <div class="card-spot"><PokerCard Model="Card_P32" /></div>
-                </div>
-            </div>
+            @for (int chair = 1; chair <= 3; chair++)
+            {
+                <PlayerContainer
+                    PlayerChair="chair"
+                    Card1="@GetPlayerCard(chair).c1"
+                    Card2="@GetPlayerCard(chair).c2"
+                    Me="@Me"
+                    PlayersByChair="@PlayersByChair" />
+            }
         </div>
 
-        <!-- Bottom players cards grouped pairwise -->
         <div class="players-bottom">
-            <!-- Player 7 -->
-            <div class="player-container-vertical">
-                <div class="player-pair">
-                    <div class="card-spot"><PokerCard Model="Card_P71" /></div>
-                    <div class="card-spot"><PokerCard Model="Card_P72" /></div>
-                </div>
-                <div class="player-label">@(PlayersByChair[7]?.Name ?? "Freier Platz 7")</div>
-            </div>
-            <!-- Player 6 -->
-            <div class="player-container-vertical">
-                <div class="player-pair">
-                    <div class="card-spot"><PokerCard Model="Card_P61" /></div>
-                    <div class="card-spot"><PokerCard Model="Card_P62" /></div>
-                </div>
-                <div class="player-label">@(PlayersByChair[6]?.Name ?? "Freier Platz 6")</div>
-            </div>
-            <!-- Player 5 -->
-            <div class="player-container-vertical">
-                <div class="player-pair">
-                    <div class="card-spot"><PokerCard Model="Card_P51" /></div>
-                    <div class="card-spot"><PokerCard Model="Card_P52" /></div>
-                </div>
-                <div class="player-label">@(PlayersByChair[5]?.Name ?? "Freier Platz 5")</div>
-            </div>
+            @for (int chair = 5; chair <= 7; chair++)
+            {
+                <PlayerContainer
+                    PlayerChair="chair"
+                    Card1="@GetPlayerCard(chair).c1"
+                    Card2="@GetPlayerCard(chair).c2"
+                    Me="@Me"
+                    PlayersByChair="@PlayersByChair" />
+            }
         </div>
 
-        <!-- Player 4 -->
-        <div class="player-pair-horizontal-right">
-            <div class="player-container-horizontal">
-                <div class="player-label">@(PlayersByChair[4]?.Name ?? "Freier Platz 4")</div>
-                <div class="player-pair">
-                    <div class="card-spot"><PokerCard Model="Card_P41" /></div>
-                    <div class="card-spot"><PokerCard Model="Card_P42" /></div>
-                </div>
-            </div>
+        <div class="player-pair-horizontal-right">    
+            <PlayerContainer
+                PlayerChair="4"
+                Card1="@GetPlayerCard(4).c1"
+                Card2="@GetPlayerCard(4).c2"
+                Me="@Me"
+                PlayersByChair="@PlayersByChair" />
         </div>
-
-        <!-- Player 8 -->
-        <div class="player-pair-horizontal-left">
-            <div class="player-container-horizontal">
-                <div class="player-label">@(PlayersByChair[8]?.Name ?? "Freier Platz 8")</div>
-                <div class="player-pair">
-                    <div class="card-spot"><PokerCard Model="Card_P81" /></div>
-                    <div class="card-spot"><PokerCard Model="Card_P82" /></div>
-                </div>
-            </div>
+        <div class="player-pair-horizontal-left"> 
+            <PlayerContainer
+                PlayerChair="8"
+                Card1="@GetPlayerCard(8).c1"
+                Card2="@GetPlayerCard(8).c2"
+                Me="@Me"
+                PlayersByChair="@PlayersByChair" />
         </div>
 
     </div>
 
     <div class="table-actions-overlay">
-        <button class="btn btn-primary" @onclick="StartGame" disabled="@Session?.GameLocked">Starte Spiel</button>
-        <button class="btn btn-primary" @onclick="ExitGame">Verlassen</button>
+        <button class="btn btn-primary"
+                @onclick="StartGame"
+                disabled="@NewGameDisabled">
+            Starte Spiel
+        </button>
+        <button class="btn btn-primary" @onclick="(() => ExitGame(true))">Verlassen</button>
     </div>
+
+    @if (Session != null && Session.CurrentGame != null)
+    {
+        <div class="action-mask-game">
+            <div class="action-title">In Pot: @Session.CurrentGame.Pot</div>
+            @foreach (var player in Session.CurrentGame.TheWinners ?? Enumerable.Empty<PlayerModel>())
+            {
+                <div class="action-title">@player.Name hat mit @player.Result gewonnen!</div>
+            }
+        </div>
+
+        <div class="action-mask-player">
+            <div class="action-panel">
+                @if (Session.CurrentGame.RoundFinished)
+                {
+                    <div class="action-title">@Me?.Result</div>
+                    <br />
+                    <div class="bet-amount">My total stack: @Me?.RemainingStack</div>
+                }
+                else
+                {
+                    @if (Me?.IsNext == true)
+                    {
+                        @if (Session.AvailableActions != null)
+                        {
+                            <div class="action-title">@Me.Name</div>
+                            <div class="action-buttons">
+                                @foreach (var action in Session.AvailableActions)
+                                {
+                                    <button class="btn btn-action"
+                                            @onclick="() => CommitAction(action)">
+                                        @action.Label
+                                    </button>
+                                }
+                            </div>
+
+                            @if (Session.AvailableActions.Any(a => a.RequiredAmount > 0))
+                            {
+                                var minAmount = Session.AvailableActions
+                                    .Where(a => a.RequiredAmount > 0)
+                                    .Min(a => a.RequiredAmount);
+                                var maxAmount = Math.Min(Me.RemainingStack, GetMaxBet());
+                                if (SelectedAmount < minAmount) SelectedAmount = minAmount;
+
+                                <input type="range"
+                                       min="@minAmount"
+                                       max="@maxAmount"
+                                       step="5"
+                                       @bind-value="SelectedAmount"
+                                       @bind-value:event="oninput" />
+                            }
+                        }
+                    }
+                    else
+                    {
+                        <div class="action-title">Waiting for other players ...</div>
+                    }
+
+                    <div class="bet-amount">Bet: @SelectedAmount / Stack: @Me?.RemainingStack</div>
+                }
+            </div>
+        </div>
+    }
 </div>
+
+<MessageBox @ref="msgBox" />
 
 
 @code {
-    [Parameter]
-    public int SessionId { get; set; }
+    [Parameter] public int SessionId { get; set; }
+    [Parameter] public int PlayerID { get; set; }
 
-    [Parameter]
-    public int PlayerID { get; set; }
+    private MessageBox? msgBox;
 
     private GameSessionModel? Session { get; set; }
-
     private PlayerModel? Me;
     private Dictionary<int, PlayerModel?> PlayersByChair = new();
+    private int SelectedAmount = 0;
 
-    #region UI elements
+    private List<(PokerCardModel c1, PokerCardModel c2)> PlayerCards = new();
+    private List<PokerCardModel> CommunityCards = new();
 
-    private ElementReference TableImageRef;
-    private DotNetObjectReference<GameTable>? dotNetRef;
+    public bool NewGameDisabled =>
+        Session?.PlayersPending == null || Session.CurrentGame == null ||
+        !(Session.PlayersPending.Count >= 2 && !Session.CurrentGame.RoundLocked);
 
-
-    private PokerCardModel Card_P11 = new();
-    private PokerCardModel Card_P12 = new();
-    private PokerCardModel Card_P21 = new();
-    private PokerCardModel Card_P22 = new();
-    private PokerCardModel Card_P31 = new();
-    private PokerCardModel Card_P32 = new();
-    private PokerCardModel Card_P41 = new();
-    private PokerCardModel Card_P42 = new();
-    private PokerCardModel Card_P51 = new();
-    private PokerCardModel Card_P52 = new();
-    private PokerCardModel Card_P61 = new();
-    private PokerCardModel Card_P62 = new();
-    private PokerCardModel Card_P71 = new();
-    private PokerCardModel Card_P72 = new();
-    private PokerCardModel Card_P81 = new();
-    private PokerCardModel Card_P82 = new();
-
-    private PokerCardModel Card_C1 = new();
-    private PokerCardModel Card_C2 = new();
-    private PokerCardModel Card_C3 = new();
-    private PokerCardModel Card_C4 = new();
-    private PokerCardModel Card_C5 = new();
-
-    #endregion
 
     protected override void OnInitialized()
     {
         Session = SessionService.GetGameSessionById(SessionId);
+        if (Session == null) return;
 
-        if (Session == null)
-            return;
-
-        //Add a event listener, to detect when other players are joinung
-        Session.OnPlayerJoined += Session_OnPlayerJoined;
-        Session.OnGameChanged += Session_OnGameChanged;
+        Session.OnSessionChanged += Session_OnSessionChanged;
+        Session.OnPlayerLost += Session_OnPlayerLost;
 
         Me = Session.GetPlayerById(PlayerID);
-        if (Me == null)
-            return;
 
-        // Build chair → player lookup
-        PlayersByChair = Enumerable.Range(1, 8)
-            .ToDictionary(
-                chair => chair,
-                chair => Session.Players.FirstOrDefault(p => p.Chair == chair)
-            );
+        // Initialize lists
+        PlayerCards = Enumerable.Range(0, 8)
+            .Select(_ => (new PokerCardModel(), new PokerCardModel()))
+            .ToList();
 
+        CommunityCards = Enumerable.Range(0, 5)
+            .Select(_ => new PokerCardModel())
+            .ToList();
+
+        RebuildPlayersByChair();
         MapPlayerCards();
+        MapCommunityCards();
     }
 
-    private void Session_OnPlayerJoined(object? sender, EventArgs e)
+    private void Session_OnSessionChanged()
     {
         InvokeAsync(() =>
         {
-            // Rebuild chair lookup
-            PlayersByChair = Enumerable.Range(1, 8)
-                .ToDictionary(
-                    chair => chair,
-                    chair => Session!.Players.FirstOrDefault(p => p.Chair == chair)
-                );
-
-            // Update cards
+            RebuildPlayersByChair();
             MapPlayerCards();
-
-            // Trigger UI refresh
+            MapCommunityCards();
             StateHasChanged();
         });
     }
 
-    private void Session_OnGameChanged(object? sender, EventArgs e)
+    private void Session_OnPlayerLost(PlayerModel lostPlayer)
     {
-        InvokeAsync(() =>
+        InvokeAsync(async () =>
         {
+            if (Me == null || msgBox == null) return;
+
+            if (lostPlayer == Me)
+            {
+                await msgBox.ShowAsync("### You Lost! ###",
+                    "Da du zu wenig Geld hast, musst du das Spiel verlassen.\r\nDu kannst gerne nochmal beitreten!");
+                await ExitGame(false);
+                return;
+            }
+
+            await msgBox.ShowAsync("### Player Lost! ###",
+                $"Der Spieler {lostPlayer.Name} hatte zu wenig Geld und musste das Spiel verlassen!");
+
+            RebuildPlayersByChair();
             MapPlayerCards();
+            MapCommunityCards();
             StateHasChanged();
         });
-
     }
 
+    private void RebuildPlayersByChair()
+    {
+        if (Session == null) return;
+
+        var sourcePlayers = (Session.CurrentGame?.RoundLocked == true)
+            ? Session.CurrentGame.Players
+            : Session.PlayersPending;
+
+        if (sourcePlayers == null) return;
+
+        var assignedChairs = new HashSet<int>();
+        PlayersByChair = new Dictionary<int, PlayerModel?>();
+
+        for (int chair = 1; chair <= 8; chair++)
+        {
+            var player = sourcePlayers.FirstOrDefault(p => p.Chair == chair && !assignedChairs.Contains(chair));
+            if (player != null)
+            {
+                assignedChairs.Add(chair);
+                PlayersByChair[chair] = player;
+            }
+            else
+            {
+                player = sourcePlayers.FirstOrDefault(p => !assignedChairs.Contains(p.Chair));
+                if (player != null)
+                {
+                    player.Chair = chair;
+                    assignedChairs.Add(chair);
+                    PlayersByChair[chair] = player;
+                }
+                else
+                {
+                    PlayersByChair[chair] = null;
+                }
+            }
+        }
+    }
 
     private void MapPlayerCards()
     {
-        foreach (var chair in PlayersByChair.Keys)
+        if (Session?.CurrentGame == null || Me == null) return;
+
+        for (int chair = 1; chair <= 8; chair++)
         {
-            var player = PlayersByChair[chair];
-            if (player == null)
-                continue;
+            if (!PlayersByChair.TryGetValue(chair, out var player) || player == null) continue;
 
-            if (Me == null)
-                return;
+            bool showFace = player == Me || Session.CurrentGame.CurrentRound == BettingRound.Showdown;
 
-            bool itsMe = Me == player;
+            var (c1, c2) = GetPlayerCard(chair);
+            if (player.Card1 != null) c1.SetCard(player.Card1, showFace);
+            if (player.Card2 != null) c2.SetCard(player.Card2, showFace);
+        }
+    }
 
-            PokerCardModel c1 = player.Card1 != null ? new PokerCardModel(player.Card1, itsMe) : new PokerCardModel();
-            PokerCardModel c2 = player.Card2 != null ? new PokerCardModel(player.Card2, itsMe) : new PokerCardModel();
+    private void MapCommunityCards()
+    {
+        if (Session?.CommunityCards == null) return;
 
-            switch (chair)
-            {
-                case 1: Card_P11 = c1; Card_P12 = c2; break;
-                case 2: Card_P21 = c1; Card_P22 = c2; break;
-                case 3: Card_P31 = c1; Card_P32 = c2; break;
-                case 4: Card_P41 = c1; Card_P42 = c2; break;
-                case 5: Card_P51 = c1; Card_P52 = c2; break;
-                case 6: Card_P61 = c1; Card_P62 = c2; break;
-                case 7: Card_P71 = c1; Card_P72 = c2; break;
-                case 8: Card_P81 = c1; Card_P82 = c2; break;
-            }
+        for (int i = 0; i < CommunityCards.Count; i++)
+        {
+            if (Session.CommunityCards.Count > i)
+                CommunityCards[i].SetCard(Session.CommunityCards[i], true);
+            else
+                CommunityCards[i].HideCard();
+        }
+    }
+
+    private void ClearAllCards()
+    {
+        foreach (var card in CommunityCards) card.HideCard();
+        foreach (var pair in PlayerCards)
+        {
+            pair.c1.HideCard();
+            pair.c2.HideCard();
         }
     }
 
     private async Task StartGame()
     {
-        if (Session == null)
-            return;
+        if (Session?.CurrentGame == null || Me == null) return;
 
-        Session.StartGame();
+        ClearAllCards();
+        await Session.StartGame();
+
+        PlayersByChair = Enumerable.Range(1, 8)
+            .ToDictionary(chair => chair,
+                chair => Session.CurrentGame.Players.FirstOrDefault(p => p.Chair == chair));
     }
 
-
-    private async Task ExitGame()
+    private async Task ExitGame(bool deletePlayer)
     {
         if (Session != null && Me != null)
         {
-            Session.OnPlayerJoined -= Session_OnPlayerJoined;
-            Session.OnGameChanged -= Session_OnGameChanged;
-            await SessionService.RemovePlayerFromSessionAsync(Session, Me);
+            Session.OnSessionChanged -= Session_OnSessionChanged;
+            Session.OnPlayerLost -= Session_OnPlayerLost;
+
+            if (deletePlayer) await SessionService.RemovePlayerFromSessionAsync(Session, Me);
         }
 
-        Nav.NavigateTo($"/tables");
+        Nav.NavigateTo("/tables");
     }
 
+    private void CommitAction(ActionOption option)
+    {
+        if (Session == null || Me == null || !Me.IsNext) return;
 
+        option.SelectedAmount = SelectedAmount;
+        Me.TakeAction(option);
+    }
 
+    private int GetMaxBet()
+    {
+        if (Session?.CurrentGame == null || Me == null) throw new ArgumentNullException();
 
+        int max = Math.Min(Me.RemainingStack, Session.CurrentGame.MaxBet);
+        if (SelectedAmount < Session.CurrentGame.MinBet) SelectedAmount = Session.CurrentGame.MinBet;
+        if (SelectedAmount > max) SelectedAmount = max;
+        return max;
+    }
+
+    private (PokerCardModel c1, PokerCardModel c2) GetPlayerCard(int chair) =>
+        PlayerCards[chair - 1]; // chairs 1–8 map to index 0–7
 }
