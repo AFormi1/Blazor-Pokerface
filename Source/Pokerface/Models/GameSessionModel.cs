@@ -505,6 +505,8 @@ namespace Pokerface.Models
                 CurrentGame.RoundLocked = false;
                 CurrentGame.RoundFinished = true;
                 AvailableActions.Clear();
+
+                await UpdateLooserAndSession();
                 return;
             }
 
@@ -527,6 +529,8 @@ namespace Pokerface.Models
                 CurrentGame.RoundLocked = false;
                 CurrentGame.RoundFinished = true;
                 AvailableActions.Clear();
+
+                await UpdateLooserAndSession();
                 return;
             }
 
