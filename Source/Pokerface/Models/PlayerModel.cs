@@ -14,6 +14,7 @@ namespace Pokerface.Models
         public int CurrentBet { get; set; }
         public bool HasFolded { get; set; }
         public bool IsSittingOut { get; set; }
+        public bool HasPostedAnte { get; set; }
         public bool HasPostedSmallBlind { get; set; }
         public bool HasPostedBigBlind { get; set; }
         public bool HasActedThisRound { get; set; }
@@ -59,18 +60,18 @@ namespace Pokerface.Models
             PlayerInput?.Invoke(this, action);
         }
 
-
         public void ResetRoundSettings()
         {
-           CurrentBet = 0;
-           HasFolded = false;
-           HasActedThisRound = false;
-           HasPostedSmallBlind = false;
-           HasPostedBigBlind = false;
-           AllIn = false;
-           IsSittingOut = false;
-           IsNext = false;
-           Result = string.Empty;
+            CurrentBet = 0;
+            HasFolded = false;
+            HasActedThisRound = false;
+            HasPostedSmallBlind = false;
+            HasPostedBigBlind = false;
+            HasPostedAnte = false;
+            AllIn = false;
+            IsSittingOut = false;
+            IsNext = false;
+            Result = string.Empty;
         }
     }
 }
