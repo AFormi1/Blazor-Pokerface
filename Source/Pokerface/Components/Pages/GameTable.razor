@@ -80,7 +80,7 @@
         </div>
 
         <div class="action-mask-player">
-            <div class="action-panel">
+             <div class="action-panel @(Me?.IsNext == true ? "action-panel--active" : "action-panel")">
                 @if (Session.CurrentGame.RoundFinished)
                 {
                     <div class="action-title">@Me?.Result</div>

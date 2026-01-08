@@ -73,7 +73,7 @@
         {
             builder.OpenElement(0, "div");
             builder.AddAttribute(1, "class", "player-active");
-            builder.AddAttribute(2, "style", GetPlayerActiveStyle(PlayerChair));
+            builder.AddAttribute(2, "class", GetPlayerActiveClass(PlayerChair));
             builder.CloseElement();
         };
 
@@ -86,12 +86,24 @@
         };
     }
 
+    private string GetPlayerActiveClass(int id)
+    {
+        if (PlayersByChair != null &&
+            PlayersByChair.TryGetValue(id, out var p) &&
+            p != null &&
+            p.IsNext)
+        {
+            return "player-active active";
+        }
+
+        return "player-active";
+    }
+
+
     private string GetPlayerText(int id) =>
         PlayersByChair != null && PlayersByChair.TryGetValue(id, out var p) ? $"Pot: {p?.RemainingStack} | {p?.Name}" ?? $"Freier Platz {id}" : $"Freier Platz {id}";
 
     private string GetPlayerColor(int id) =>
         PlayersByChair != null && Me != null && PlayersByChair.TryGetValue(id, out var p) && p == Me ? "color: orange;" : "color: white;";
 
-    private string GetPlayerActiveStyle(int id) =>
-        PlayersByChair != null && PlayersByChair.TryGetValue(id, out var p) && p != null && p.IsNext ? "visibility: visible;" : "visibility: hidden;";
 }
