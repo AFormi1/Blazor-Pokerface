@@ -62,6 +62,9 @@ namespace Pokerface.Models
 
         public void ResetRoundSettings()
         {
+            Card1 = null;
+            Card2 = null;
+
             CurrentBet = 0;
             HasFolded = false;
             HasActedThisRound = false;
