@@ -578,8 +578,7 @@ namespace Pokerface.Models
             var bestHands = new Dictionary<PlayerModel, (int Rank, List<int> Tie, string HandName, string HandRank)>();
             foreach (var p in activePlayers)
             {
-                List<Card> fullHand = new List<Card> { p.Card1!, p.Card2! };
-                fullHand.AddRange(CommunityCards);
+                List<Card> fullHand = [p.Card1!, p.Card2!, .. CommunityCards];
                 bestHands[p] = GamePlayHelpers.EvaluateBestHand(fullHand);
             }
 
@@ -602,6 +601,7 @@ namespace Pokerface.Models
                 }
             }
 
+            bool isDraw = topPlayers.Count > 1;
             int potShare = CurrentGame.Pot / topPlayers.Count;
             CurrentGame.TheWinners = new();
 
@@ -610,11 +610,11 @@ namespace Pokerface.Models
             {
                 var handName = bestHands.ContainsKey(p) ? bestHands[p].HandName : "Keine Hand";
 
-                // Determine kicker text for this player
+                // Determine kicker text for this player, if we got a draw
                 string kickerText = "";
-                if (bestHands.ContainsKey(p) && bestHands[p].Tie.Any())
+                if (isDraw && bestHands.ContainsKey(p) && bestHands[p].Tie.Any())
                 {
-                    kickerText = "\nKicker: " + string.Join(", ", bestHands[p].Tie.Select(t => GamePlayHelpers.CardValueToString(t)));
+                    kickerText = "\nKicker: " + string.Join(", ", bestHands[p].Tie.OrderDescending().Select(t => GamePlayHelpers.CardValueToString(t)));
                 }
 
                 if (topPlayers.Contains(p))
