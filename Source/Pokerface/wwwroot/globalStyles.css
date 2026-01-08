@@ -99,10 +99,38 @@
 .player-active {
     width: 2rem;
     height: 2rem;
-    background-color: rgba(255, 165, 0, 0.6);
-    border: 0.15em solid rgb(255, 165, 0);
     border-radius: 50%;
+    background-color: rgba(255, 165, 0, 0.3);
+    border: 0.15em solid rgb(255, 165, 0);
+    opacity: 0;
+    transform: scale(0.6);
+    transition: opacity 0.3s ease;
 }
+
+    /* Only active player animates */
+    .player-active.active {
+        opacity: 1;
+        animation: playerPulse 1.2s infinite ease-in-out;
+    }
+
+@keyframes playerPulse {
+    0% {
+        transform: scale(0.9);
+        box-shadow: 0 0 0 0 rgba(255, 165, 0, 0.6);
+    }
+
+    50% {
+        transform: scale(1.1);
+        box-shadow: 0 0 0.8rem 0.4rem rgba(255, 165, 0, 0.8);
+    }
+
+    100% {
+        transform: scale(0.9);
+        box-shadow: 0 0 0 0 rgba(255, 165, 0, 0.6);
+    }
+}
+
+
 /* =========================
    PLAYER LABEL
    ========================= */
@@ -121,6 +149,7 @@
 .player-pair {
     display: flex;
     gap: clamp(0.4rem, 1vw, 1rem);
+    margin-bottom: 0.5rem;
 }
 
 .player-pair-horizontal-left,
