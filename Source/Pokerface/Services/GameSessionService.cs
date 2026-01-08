@@ -42,7 +42,7 @@ namespace Pokerface.Services
             else
             {
                 // Session exists --> check if table is full
-                if (session.GameTable?.CurrentPlayers >= session.GameTable?.MaxUsers)
+                if (session.GameTable?.CurrentPlayers >= TableModel.MaxPlayers)
                     return null; // table full
 
 
@@ -55,10 +55,15 @@ namespace Pokerface.Services
             }
 
             // Add the player
-            if (session.GameTable == null)
-                return null;
+            if (session.GameTable == null || session.PlayersPending == null)
+                throw new ArgumentNullException("objects are null");
 
-            PlayerModel player = new PlayerModel(session.GameTable.CurrentPlayers + 1, playerName);
+            int freeChair = Enumerable
+                .Range(1, TableModel.MaxPlayers)
+                .Except(session.PlayersPending.Select(p => p.Chair))
+                .FirstOrDefault(-1);
+
+            PlayerModel player = new PlayerModel(freeChair, playerName);
             await session.AddPlayer(player);
 
             CurrentTableUsersChanged?.Invoke(this, session.GameTable);
