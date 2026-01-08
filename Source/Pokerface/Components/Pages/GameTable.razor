@@ -219,9 +219,9 @@
 
         PlayersByChair = new Dictionary<int, PlayerModel?>();
 
-        for (int chair = 0; chair < TableModel.MaxPlayers; chair++)
+        for (int chair = 1; chair <= TableModel.MaxPlayers; chair++)
         {
-            PlayersByChair[chair] = Session.PlayersPending[chair];
+            PlayersByChair[chair] = Session.PlayersPending.Where(x => x.Chair == chair).FirstOrDefault();
         }
     }
 
@@ -229,7 +229,7 @@
     {
         if (Session?.CurrentGame == null || Me == null) return;
 
-        for (int chair = 1; chair <= 8; chair++)
+        for (int chair = 1; chair <= TableModel.MaxPlayers; chair++)
         {
             if (!PlayersByChair.TryGetValue(chair, out var player) || player == null) continue;
 

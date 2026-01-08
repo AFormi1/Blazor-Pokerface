@@ -42,8 +42,8 @@ namespace Pokerface.Services
             else
             {
                 // Session exists --> check if table is full
-                if (session.RealPlayersPending.Length >= TableModel.MaxPlayers)
-                    return null; // table full
+                if (session.GameTable?.CurrentPlayers >= TableModel.MaxPlayers)
+                    return null; // table full)
 
 
                 // Check if player already exists in the session
