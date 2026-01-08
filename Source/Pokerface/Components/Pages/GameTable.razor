@@ -216,47 +216,23 @@
 
     private void RebuildPlayersByChair()
     {
-        if (Session == null) return;
+        if (Session == null || Session.PlayersPending == null) 
+        return;
 
-        var sourcePlayers = (Session.CurrentGame?.RoundLocked == true)
-            ? Session.CurrentGame.Players
-            : Session.PlayersPending;
-
-        if (sourcePlayers == null) return;
-
-        var assignedChairs = new HashSet<int>();
         PlayersByChair = new Dictionary<int, PlayerModel?>();
 
-        for (int chair = 1; chair <= 8; chair++)
+        for (int chair = 0; chair < TableModel.MaxPlayers; chair++)
         {
-            var player = sourcePlayers.FirstOrDefault(p => p.Chair == chair && !assignedChairs.Contains(chair));
-            if (player != null)
-            {
-                assignedChairs.Add(chair);
-                PlayersByChair[chair] = player;
-            }
-            else
-            {
-                player = sourcePlayers.FirstOrDefault(p => !assignedChairs.Contains(p.Chair));
-                if (player != null)
-                {
-                    player.Chair = chair;
-                    assignedChairs.Add(chair);
-                    PlayersByChair[chair] = player;
-                }
-                else
-                {
-                    PlayersByChair[chair] = null;
-                }
-            }
+            PlayersByChair[chair] = Session.PlayersPending.Where(x => x.Chair == chair).FirstOrDefault();
         }
     }
+
 
     private void MapPlayerCards()
     {
         if (Session?.CurrentGame == null || Me == null) return;
 
-        for (int chair = 1; chair <= 8; chair++)
+        for (int chair = 1; chair <= TableModel.MaxPlayers; chair++)
         {
             if (!PlayersByChair.TryGetValue(chair, out var player) || player == null) continue;
 

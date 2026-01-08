@@ -13,7 +13,7 @@ namespace Pokerface.Models
 
 
         [Ignore]
-        public int MaxUsers { get; private set; } = 8 ;
+        public static int MaxPlayers { get; private set; } = 8 ;
 
         public int CurrentPlayers { get; set; }
 
