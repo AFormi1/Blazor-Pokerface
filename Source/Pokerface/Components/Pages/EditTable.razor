@@ -99,9 +99,11 @@
     </div>
 </div>
 
+<MessageBox @ref="msgBox" />
 
 
 @code {
+    private MessageBox? msgBox;
 
     [Parameter]
     public int Id { get; set; }
@@ -124,7 +126,7 @@
 
     private async Task OnSubmit()
     {
-        if (tableModel == null)
+        if (tableModel == null ||msgBox == null)
             return;
 
         //check for a unique name
@@ -132,6 +134,19 @@
 
         if (!nameIsUnique)
             return;
+
+        if ((tableModel.SmallBlind == 0) ^ (tableModel.BigBlind == 0))
+        {
+            tableModel.SmallBlind = 0;
+            tableModel.BigBlind = 0;
+
+            await msgBox.ShowAsync(
+                "Ungültige Blinds",
+                "Small Blind und Big Blind müssen entweder beide 0 sein oder beide größer als 0.\n" +
+                "Eine Mischung aus 0 und einem Wert > 0 ist nicht zulässig.\n\n" +
+                "Beide Werte wurden auf 0 gesetzt!"
+            );        
+        }
 
         await TableService.SaveTableAsync(tableModel);
         nav.NavigateTo("/tables");

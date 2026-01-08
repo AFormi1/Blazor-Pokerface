@@ -59,6 +59,8 @@ namespace Pokerface.Models
         public bool RoundLocked { get; set; }
         [Ignore]
         public bool RoundFinished { get; set; }
+        [Ignore]
+        public bool PlayersGotCards { get; set; }
 
         #endregion
 
@@ -80,6 +82,7 @@ namespace Pokerface.Models
             RoundFinished = false;
             CurrentPlayer = 0;
             CurrentPlayers = 0;
+            PlayersGotCards = false;
         }
     }
 }

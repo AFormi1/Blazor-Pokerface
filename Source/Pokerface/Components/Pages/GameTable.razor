@@ -249,7 +249,7 @@
         minAmount = betActions.Min(a => a.RequiredAmount);
         maxAmount = Math.Min(Me.RemainingStack, Session.CurrentGame.MaxBet);
 
-        //SelectedAmount = minAmount;
+        SelectedAmount = minAmount;
         return;
     }
 
