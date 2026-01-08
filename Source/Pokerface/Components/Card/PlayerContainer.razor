@@ -18,9 +18,9 @@
         {
             return PlayerChair switch
             {
-                4 => EnumPlayerLayout.Right,
-                5 or 6 or 7 => EnumPlayerLayout.Bottom,
-                8 => EnumPlayerLayout.Left,
+                3 => EnumPlayerLayout.Right,
+                4 or 5 or 6 => EnumPlayerLayout.Bottom,
+                7 => EnumPlayerLayout.Left,
                 _ => EnumPlayerLayout.Top
             };
         }
@@ -87,7 +87,7 @@
     }
 
     private string GetPlayerText(int id) =>
-        PlayersByChair != null && PlayersByChair.TryGetValue(id, out var p) ? p?.Name ?? $"Freier Platz {id}" : $"Freier Platz {id}";
+        PlayersByChair != null && PlayersByChair.TryGetValue(id, out var p) ? p?.Name ?? $"Freier Platz {id + 1}" : $"Freier Platz {id + 1}";
 
     private string GetPlayerColor(int id) =>
         PlayersByChair != null && Me != null && PlayersByChair.TryGetValue(id, out var p) && p == Me ? "color: orange;" : "color: white;";

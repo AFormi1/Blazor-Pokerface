@@ -19,7 +19,8 @@ namespace Pokerface.Models
         public int Id { get; set; }
 
         public TableModel? GameTable { get; set; } = new TableModel();
-        public List<PlayerModel>? PlayersPending { get; set; } = new List<PlayerModel>();
+        public PlayerModel?[] PlayersPending { get; set; } = new PlayerModel?[TableModel.MaxPlayers];
+        public PlayerModel[] RealPlayersPending => [.. PlayersPending.Where(p => p != null).Select(p => p!)];
         public List<Card>? CardSet { get; set; }
         public List<Card>? CommunityCards { get; set; }
         public GameContext? CurrentGame { get; set; } = new GameContext();
@@ -32,7 +33,7 @@ namespace Pokerface.Models
 
         public PlayerModel? GetPlayerById(int player)
         {
-            return PlayersPending?.Where(p => p.Id == player).FirstOrDefault();
+            return RealPlayersPending.Where(p => p.Id == player).FirstOrDefault();
         }
 
         public async Task AddPlayer(PlayerModel player)
@@ -40,21 +41,32 @@ namespace Pokerface.Models
             if (_dbTableService == null || PlayersPending == null || GameTable == null)
                 throw new ArgumentNullException("null objects found in AddPlayer");
 
-            PlayersPending.Add(player);
+            for (int i = 0; i < PlayersPending.Length; i++)
+            {
+                //check for a three seat and add the player on this index
+                if (PlayersPending[i] == null)
+                {
+                    PlayersPending[i] = player;
+                    player.Chair = i;
+                    GameTable.CurrentPlayers = RealPlayersPending.Length;
 
-            GameTable.CurrentPlayers = PlayersPending.Count;
-
-            //Update the TableModel in DB
-            await _dbTableService.SaveItemAsync(GameTable);
-
+                    //Update the TableModel in DB
+                    await _dbTableService.SaveItemAsync(GameTable);
+                    break;
+                }
+            }  
+            
             OnSessionChanged?.Invoke();
-
         }
+
 
         public async Task RemovePlayer(PlayerModel player)
         {
             if (_dbTableService == null || PlayersPending == null || GameTable == null || CurrentGame == null)
                 throw new ArgumentNullException("null objects found in RemovePlayer");
+
+            if (player.Chair < 0 || player.Chair >= PlayersPending.Length)
+                throw new InvalidDataException("Chair must be between 0 and 7");
 
             // Mark as folded / sitting out
             player.HasFolded = true;
@@ -64,14 +76,14 @@ namespace Pokerface.Models
             if (player.IsNext)
                 await OnPlayerActionComitted(player, new PlayerAction { ActionType = EnumPlayerAction.Fold });
 
-            PlayersPending.Remove(player);
-            GameTable.CurrentPlayers = PlayersPending.Count();
+            PlayersPending[player.Chair] = null;
+            GameTable.CurrentPlayers = RealPlayersPending.Length;
 
             // Update DB
             await _dbTableService.SaveItemAsync(GameTable);
 
             // If everyone left, close the session
-            if (PlayersPending.All(p => p.IsSittingOut))
+            if (RealPlayersPending.All(p => p.IsSittingOut))
             {
                 CurrentGame.RoundLocked = false;
                 CurrentGame.RoundFinished = false;
@@ -94,11 +106,11 @@ namespace Pokerface.Models
             CurrentGame = new GameContext(PlayersPending, lastDealerIndex);
             AvailableActions = new();
 
-            if (CurrentGame.Players.Count < 2)
+            if (CurrentGame.RealPlayers.Length < 2)
                 return;
 
             // Reset player round flags
-            foreach (var player in CurrentGame.Players)
+            foreach (var player in CurrentGame.RealPlayers)
             {
                 player.ResetRoundSettings();
                 player.PlayerInput -= OnPlayerActionComitted;
@@ -110,9 +122,9 @@ namespace Pokerface.Models
 
             // First active player posts ante
             CurrentGame.CurrentPlayer = GetFirstActivePlayerAfterDealer();
-            CurrentGame.Players[CurrentGame.CurrentPlayer].IsNext = true;
+            CurrentGame.RealPlayers[CurrentGame.CurrentPlayer].IsNext = true;
 
-            UpdateAvailableActions(CurrentGame.Players[CurrentGame.CurrentPlayer]);
+            UpdateAvailableActions(CurrentGame.RealPlayers[CurrentGame.CurrentPlayer]);
 
             OnSessionChanged?.Invoke(); // Wait for player input for ante
         }
@@ -213,7 +225,7 @@ namespace Pokerface.Models
             player.IsNext = false;
 
             // --- Check if only one active player remains ---
-            var activePlayers = CurrentGame.Players.Where(p => !p.HasFolded && !p.IsSittingOut).ToList();
+            var activePlayers = CurrentGame.RealPlayers.Where(p => !p.HasFolded && !p.IsSittingOut).ToList();
             if (activePlayers.Count == 1)
             {
                 // Only one player left: assign full pot and finish the round
@@ -252,10 +264,10 @@ namespace Pokerface.Models
             // --- Normal turn rotation ---
             do
             {
-                CurrentGame.CurrentPlayer = (CurrentGame.CurrentPlayer + 1) % CurrentGame.Players.Count;
-            } while (CurrentGame.Players[CurrentGame.CurrentPlayer].HasFolded || CurrentGame.Players[CurrentGame.CurrentPlayer].IsSittingOut);
+                CurrentGame.CurrentPlayer = (CurrentGame.CurrentPlayer + 1) % CurrentGame.RealPlayers.Length;
+            } while (CurrentGame.RealPlayers[CurrentGame.CurrentPlayer].HasFolded || CurrentGame.RealPlayers[CurrentGame.CurrentPlayer].IsSittingOut);
 
-            var nextPlayer = CurrentGame.Players[CurrentGame.CurrentPlayer];
+            var nextPlayer = CurrentGame.RealPlayers[CurrentGame.CurrentPlayer];
             nextPlayer.IsNext = true;
 
             // If the next player is sitting out or left, auto-fold
@@ -290,7 +302,7 @@ namespace Pokerface.Models
                 return;
 
             var actions = new List<ActionOption>();
-            int playerIndex = CurrentGame.Players.IndexOf(player);
+            int playerIndex = CurrentGame.RealPlayers.IndexOf(player);
 
             // Fold is always available
             actions.Add(new ActionOption(EnumPlayerAction.Fold, 0));
@@ -375,7 +387,7 @@ namespace Pokerface.Models
                 throw new ArgumentNullException("null objects found");
 
             // Clear per-round flags
-            foreach (var p in CurrentGame.Players)
+            foreach (var p in CurrentGame.RealPlayers)
             {
                 p.HasActedThisRound = false;
                 p.CurrentBet = 0;
@@ -388,7 +400,7 @@ namespace Pokerface.Models
             switch (CurrentGame.CurrentRound)
             {
                 case BettingRound.Ante:
-                    GamePlayHelpers.DealPlayerCards(CardSet, CurrentGame.Players);
+                    GamePlayHelpers.DealPlayerCards(CardSet, CurrentGame.RealPlayers);
                     CurrentGame.CurrentRound = BettingRound.PreFlop;
                     break;
 
@@ -415,8 +427,8 @@ namespace Pokerface.Models
 
             // Assign NEXT SINGLE player
             CurrentGame.CurrentPlayer = GetFirstActivePlayerAfterDealer();
-            CurrentGame.Players[CurrentGame.CurrentPlayer].IsNext = true;
-            UpdateAvailableActions(CurrentGame.Players[CurrentGame.CurrentPlayer]);
+            CurrentGame.RealPlayers[CurrentGame.CurrentPlayer].IsNext = true;
+            UpdateAvailableActions(CurrentGame.RealPlayers[CurrentGame.CurrentPlayer]);
 
             OnSessionChanged?.Invoke();
         }
@@ -431,7 +443,7 @@ namespace Pokerface.Models
             OnSessionChanged?.Invoke();
 
             // Ensure players can cover blinds for next game
-            var bustedPlayers = CurrentGame.Players.Where(p => p.RemainingStack < CurrentGame.SmallBlind).ToList();
+            var bustedPlayers = CurrentGame.RealPlayers.Where(p => p.RemainingStack < CurrentGame.SmallBlind).ToList();
 
             // Prepare all busted player tasks but do not start yet
             List<Func<Task>> lostTasks = new();
@@ -456,19 +468,19 @@ namespace Pokerface.Models
             if (_dbTableService == null || PlayersPending == null || GameTable == null || CurrentGame == null || AvailableActions == null)
                 throw new ArgumentNullException("null objects found");
 
-            if (CurrentGame.Players.Count < 2)
+            if (CurrentGame.RealPlayers.Length < 2)
                 return 0;
 
-            int index = (CurrentGame.DealerIndex + 1) % CurrentGame.Players.Count;
+            int index = (CurrentGame.DealerIndex + 1) % CurrentGame.RealPlayers.Length;
 
             // Find first active player (not folded, not sitting out)
-            for (int i = 0; i < CurrentGame.Players.Count; i++)
+            for (int i = 0; i < CurrentGame.RealPlayers.Length; i++)
             {
-                var player = CurrentGame.Players[index];
+                var player = CurrentGame.RealPlayers[index];
                 if (!player.HasFolded && !player.IsSittingOut)
                     return index;
 
-                index = (index + 1) % CurrentGame.Players.Count;
+                index = (index + 1) % CurrentGame.RealPlayers.Length;
             }
 
             // fallback: return dealer if everyone else folded/sitting out
@@ -481,7 +493,7 @@ namespace Pokerface.Models
             if (CurrentGame == null || CurrentGame.Players == null)
                 throw new ArgumentNullException("objects are null");
 
-            var activePlayers = CurrentGame.Players
+            var activePlayers = CurrentGame.RealPlayers
                 .Where(p => !p.HasFolded && !p.IsSittingOut)
                 .ToList();
 
@@ -507,12 +519,12 @@ namespace Pokerface.Models
                 return;
 
             // Get all active players (not folded, not sitting out)
-            var activePlayers = CurrentGame.Players.Where(p => !p.HasFolded && !p.IsSittingOut).ToList();
+            var activePlayers = CurrentGame.RealPlayers.Where(p => !p.HasFolded && !p.IsSittingOut).ToList();
 
             // If no active players, everyone folded
             if (!activePlayers.Any())
             {
-                foreach (var p in CurrentGame.Players)
+                foreach (var p in CurrentGame.RealPlayers)
                     p.Result = "Alle haben gefoldet.\nUnentschieden.";
 
                 CurrentGame.RoundLocked = false;
@@ -530,7 +542,7 @@ namespace Pokerface.Models
                 winner.RemainingStack += CurrentGame.Pot;
                 winner.Result = $"Alle anderen haben gefoldet.\nDu gewinnst den Pot {CurrentGame.Pot}";
 
-                foreach (var p in CurrentGame.Players)
+                foreach (var p in CurrentGame.RealPlayers)
                 {
                     if (p != winner)
                         p.Result = "Du hast gefoldet.";
@@ -583,7 +595,7 @@ namespace Pokerface.Models
             CurrentGame.TheWinners = new();
 
             // Assign results and distribute pot
-            foreach (var p in CurrentGame.Players)
+            foreach (var p in CurrentGame.RealPlayers)
             {
                 var handName = bestHands.ContainsKey(p) ? bestHands[p].HandName : "Keine Hand";
 
@@ -648,7 +660,6 @@ namespace Pokerface.Models
                 await _dbTableService.SaveItemAsync(GameTable);
 
             GameTable = null;
-            PlayersPending = null;
             CardSet = null;
             CommunityCards = null;
             CurrentGame = null;
