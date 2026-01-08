@@ -17,23 +17,25 @@ namespace Pokerface.Models
         public bool RoundFinished { get; set; }
         public int CurrentPlayer { get; set; }
         public BettingRound CurrentRound { get; set; }
-
-        public List<PlayerModel> Players { get; set; } = new List<PlayerModel>();
+        public PlayerModel?[] Players { get; set; } = new PlayerModel?[TableModel.MaxPlayers];
+        public PlayerModel[] RealPlayers => [.. Players.Where(p => p != null).Select(p => p!)];
         public List<PlayerModel> TheWinners { get; set; } = new();
-
         public GameContext()
         {
             
         }
-        public GameContext(List<PlayerModel> newPlayers, int lastDealerIndex)
+        public GameContext(PlayerModel?[] newPlayers, int lastDealerIndex)
         {
             Players = [.. newPlayers];
             RoundLocked = true;
-            DealerIndex = (lastDealerIndex + 1) % Players.Count;
-            SmallBlindIndex = (DealerIndex + 1) % Players.Count;
-            BigBlindIndex = (DealerIndex + 2) % Players.Count;
+            DealerIndex = (lastDealerIndex + 1) % RealPlayers.Length;
+            SmallBlindIndex = (DealerIndex + 1) % RealPlayers.Length;
+            BigBlindIndex = (DealerIndex + 2) % RealPlayers.Length;
             TheWinners = new();
         }
+
+
+
 
     }
 

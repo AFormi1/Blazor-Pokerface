@@ -42,14 +42,14 @@ namespace Pokerface.Services
             else
             {
                 // Session exists --> check if table is full
-                if (session.GameTable?.CurrentPlayers >= session.GameTable?.MaxUsers)
+                if (session.RealPlayersPending.Length >= TableModel.MaxPlayers)
                     return null; // table full
 
 
                 // Check if player already exists in the session
                 if (session.PlayersPending != null)
                 {
-                    if (session.PlayersPending.Any(p => p.Name.Equals(playerName, StringComparison.OrdinalIgnoreCase)))
+                    if (session.RealPlayersPending.Any(p => p.Name.Equals(playerName, StringComparison.OrdinalIgnoreCase)))
                         return null; // player already joined
                 }
             }
@@ -75,7 +75,7 @@ namespace Pokerface.Services
                 CurrentTableUsersChanged?.Invoke(this, session.GameTable);
 
             // If no players left, remove the session
-            if (session.PlayersPending?.Count == 0)
+            if (session.RealPlayersPending.Length == 0)
                 await RemoveSession(session);
         }
 

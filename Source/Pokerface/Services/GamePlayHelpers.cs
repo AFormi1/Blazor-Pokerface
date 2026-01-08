@@ -6,7 +6,7 @@ namespace Pokerface.Services
 {
     public static class GamePlayHelpers
     {
-        public static void DealPlayerCards(List<Card>? cardset, List<PlayerModel>? players)
+        public static void DealPlayerCards(List<Card>? cardset, PlayerModel[]? players)
         {
             if (cardset == null || players == null)
                 return;

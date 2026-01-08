@@ -18,44 +18,46 @@
         </div>
 
         <div class="players-top">
-            @for (int chair = 1; chair <= 3; chair++)
+            @for (int chair = 0; chair <= 2; chair++)
             {
-                <PlayerContainer
-                    PlayerChair="chair"
-                    Card1="@GetPlayerCard(chair).c1"
-                    Card2="@GetPlayerCard(chair).c2"
-                    Me="@Me"
-                    PlayersByChair="@PlayersByChair" />
+                <PlayerContainer PlayerChair="chair"
+                                 Card1="@GetPlayerCard(chair).c1"
+                                 Card2="@GetPlayerCard(chair).c2"
+                                 Me="@Me"
+                                 PlayersByChair="@PlayersByChair" />
             }
         </div>
 
         <div class="players-bottom">
-            @for (int chair = 5; chair <= 7; chair++)
+            @for (int chair = 6; chair >= 4; chair--)
             {
-                <PlayerContainer
-                    PlayerChair="chair"
-                    Card1="@GetPlayerCard(chair).c1"
-                    Card2="@GetPlayerCard(chair).c2"
-                    Me="@Me"
-                    PlayersByChair="@PlayersByChair" />
+                <PlayerContainer PlayerChair="chair"
+                                 Card1="@GetPlayerCard(chair).c1"
+                                 Card2="@GetPlayerCard(chair).c2"
+                                 Me="@Me"
+                                 PlayersByChair="@PlayersByChair" />
             }
         </div>
 
-        <div class="player-pair-horizontal-right">    
-            <PlayerContainer
-                PlayerChair="4"
-                Card1="@GetPlayerCard(4).c1"
-                Card2="@GetPlayerCard(4).c2"
-                Me="@Me"
-                PlayersByChair="@PlayersByChair" />
+        <div class="player-pair-horizontal-right">
+            @{
+                int index3 = 3;
+            }
+            <PlayerContainer PlayerChair="@index3"
+                             Card1="@GetPlayerCard(index3).c1"
+                             Card2="@GetPlayerCard(index3).c2"
+                             Me="@Me"
+                             PlayersByChair="@PlayersByChair" />
         </div>
-        <div class="player-pair-horizontal-left"> 
-            <PlayerContainer
-                PlayerChair="8"
-                Card1="@GetPlayerCard(8).c1"
-                Card2="@GetPlayerCard(8).c2"
-                Me="@Me"
-                PlayersByChair="@PlayersByChair" />
+        <div class="player-pair-horizontal-left">
+            @{
+                int index7 = 7;
+            }
+            <PlayerContainer PlayerChair="@index7"
+                             Card1="@GetPlayerCard(index7).c1"
+                             Card2="@GetPlayerCard(index7).c2"
+                             Me="@Me"
+                             PlayersByChair="@PlayersByChair" />
         </div>
 
     </div>
@@ -107,8 +109,8 @@
                             @if (Session.AvailableActions.Any(a => a.RequiredAmount > 0))
                             {
                                 var minAmount = Session.AvailableActions
-                                    .Where(a => a.RequiredAmount > 0)
-                                    .Min(a => a.RequiredAmount);
+                                .Where(a => a.RequiredAmount > 0)
+                                .Min(a => a.RequiredAmount);
                                 var maxAmount = Math.Min(Me.RemainingStack, GetMaxBet());
                                 if (SelectedAmount < minAmount) SelectedAmount = minAmount;
 
@@ -150,10 +152,7 @@
     private List<(PokerCardModel c1, PokerCardModel c2)> PlayerCards = new();
     private List<PokerCardModel> CommunityCards = new();
 
-    public bool NewGameDisabled =>
-        Session?.PlayersPending == null || Session.CurrentGame == null ||
-        !(Session.PlayersPending.Count >= 2 && !Session.CurrentGame.RoundLocked);
-
+    public bool NewGameDisabled => Session?.CurrentGame == null || !(Session.RealPlayersPending.Length >= 2 && !Session.CurrentGame.RoundLocked);
 
     protected override void OnInitialized()
     {
@@ -166,7 +165,7 @@
         Me = Session.GetPlayerById(PlayerID);
 
         // Initialize lists
-        PlayerCards = Enumerable.Range(0, 8)
+        PlayerCards = Enumerable.Range(0, TableModel.MaxPlayers)
             .Select(_ => (new PokerCardModel(), new PokerCardModel()))
             .ToList();
 
@@ -218,37 +217,11 @@
     {
         if (Session == null) return;
 
-        var sourcePlayers = (Session.CurrentGame?.RoundLocked == true)
-            ? Session.CurrentGame.Players
-            : Session.PlayersPending;
-
-        if (sourcePlayers == null) return;
-
-        var assignedChairs = new HashSet<int>();
         PlayersByChair = new Dictionary<int, PlayerModel?>();
 
-        for (int chair = 1; chair <= 8; chair++)
+        for (int chair = 0; chair < TableModel.MaxPlayers; chair++)
         {
-            var player = sourcePlayers.FirstOrDefault(p => p.Chair == chair && !assignedChairs.Contains(chair));
-            if (player != null)
-            {
-                assignedChairs.Add(chair);
-                PlayersByChair[chair] = player;
-            }
-            else
-            {
-                player = sourcePlayers.FirstOrDefault(p => !assignedChairs.Contains(p.Chair));
-                if (player != null)
-                {
-                    player.Chair = chair;
-                    assignedChairs.Add(chair);
-                    PlayersByChair[chair] = player;
-                }
-                else
-                {
-                    PlayersByChair[chair] = null;
-                }
-            }
+            PlayersByChair[chair] = Session.PlayersPending[chair];
         }
     }
 
@@ -256,7 +229,7 @@
     {
         if (Session?.CurrentGame == null || Me == null) return;
 
-        for (int chair = 1; chair <= 8; chair++)
+        for (int chair = 0; chair < TableModel.MaxPlayers; chair++)
         {
             if (!PlayersByChair.TryGetValue(chair, out var player) || player == null) continue;
 
@@ -298,9 +271,9 @@
         ClearAllCards();
         await Session.StartGame();
 
-        PlayersByChair = Enumerable.Range(1, 8)
+        PlayersByChair = Enumerable.Range(0, TableModel.MaxPlayers)
             .ToDictionary(chair => chair,
-                chair => Session.CurrentGame.Players.FirstOrDefault(p => p.Chair == chair));
+                chair => Session.CurrentGame.RealPlayers.FirstOrDefault(p => p.Chair == chair));
     }
 
     private async Task ExitGame(bool deletePlayer)
@@ -335,5 +308,5 @@
     }
 
     private (PokerCardModel c1, PokerCardModel c2) GetPlayerCard(int chair) =>
-        PlayerCards[chair - 1]; // chairs 1–8 map to index 0–7
+        PlayerCards[chair];
 }
