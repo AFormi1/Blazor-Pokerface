@@ -156,17 +156,15 @@
         Me != null &&
         Me.IsNext &&
         Session.CurrentGame.CurrentRound != BettingRound.Ante &&
+        Session.CurrentGame.CurrentRound != BettingRound.SmallBlind &&
+        Session.CurrentGame.CurrentRound != BettingRound.BigBlind &&
         Session.CurrentGame.CurrentRound != BettingRound.Showdown &&
         Session.AvailableActions.Any(a =>
-            a.RequiredAmount > 0 &&
-            a.ActionType != EnumPlayerAction.SmallBlind &&
-            a.ActionType != EnumPlayerAction.BigBlind
+            a.RequiredAmount > 0
         );
 
-    private bool sliderReset;
     private int minAmount;
     private int maxAmount;
-
 
     protected override void OnInitialized()
     {

@@ -94,7 +94,6 @@ namespace Pokerface.Services
             await session.DisposeAsync();
 
             session = null;
-
         }
     }
 }

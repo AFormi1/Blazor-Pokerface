@@ -32,12 +32,11 @@
                     </div>
                 </div>
 
-                <!-- Name -->
+
                 <div class="form-row">
                     <label class="form-label text-white">Name</label>
                     <div class="form-field">
-                        <InputText @bind-Value="tableModel.Name"
-                                   class="form-control" />
+                        <InputText @bind-Value="tableModel.Name" class="form-control" />
 
                         <ValidationMessage For="() => tableModel.Name" />
                         @if (!nameIsUnique)
@@ -46,11 +45,49 @@
                                 Der Name existiert bereits.
                             </div>
                         }
+                    </div>                          
+                </div>
+                <br />
+                <div class="form-row">
+                   <label class="form-label text-white">Pflichteinsatz (Ante)</label>
+                    <div class="form-field">
+                        <InputNumber @bind-Value="tableModel.Ante" class="form-control" />
+                        <ValidationMessage For="() => tableModel.Ante" />              
                     </div>
                 </div>
-
                 <br />
-
+                <div class="form-row">
+                    <label class="form-label text-white">SmallBlind</label>
+                    <div class="form-field">
+                        <InputNumber @bind-Value="tableModel.SmallBlind" class="form-control" />
+                        <ValidationMessage For="() => tableModel.SmallBlind" />              
+                    </div>
+                </div>
+                <br />
+                <div class="form-row">
+                    <label class="form-label text-white">BigBlind</label>
+                    <div class="form-field">
+                        <InputNumber @bind-Value="tableModel.BigBlind" class="form-control" />
+                        <ValidationMessage For="() => tableModel.BigBlind" />              
+                    </div>
+                </div>
+                <br />
+                <div class="form-row">
+                    <label class="form-label text-white">MinBet</label>
+                    <div class="form-field">
+                        <InputNumber @bind-Value="tableModel.MinBet" class="form-control" />
+                        <ValidationMessage For="() => tableModel.MinBet" />              
+                    </div>
+                </div>
+                <br />
+                <div class="form-row">
+                    <label class="form-label text-white">MaxBet</label>
+                    <div class="form-field">
+                        <InputNumber @bind-Value="tableModel.MaxBet" class="form-control" />
+                        <ValidationMessage For="() => tableModel.MaxBet" />              
+                    </div>   
+                </div>   
+                <br />
                 <div class="button-row">
                     <button class="btn btn-primary" type="submit">Speichern</button>
                     <button type="button" class="btn btn-warning" @onclick="DeleteTable">Löschen</button>

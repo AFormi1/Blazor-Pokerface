@@ -6,6 +6,23 @@ namespace Pokerface.Services
 {
     public static class GamePlayHelpers
     {
+        public static void LogGameOptions(PlayerModel player, List<ActionOption>? options)
+        {
+            if (player == null || options == null) return;
+
+            // Build a string describing each option
+            string optionsText = string.Join(", ", options.Select(o => $"{o.Label} ({o.RequiredAmount})"));
+
+            Console.WriteLine($"Player {player.Chair} got options: {optionsText}");
+        }
+
+        public static void LogPlayerComitted(PlayerModel player, PlayerAction action)
+        {
+            if (player == null) return;
+            Console.WriteLine($"Player {player.Chair} used option: {action.ActionType} ({action.CurrentBet})");
+        }
+
+
         public static void DealPlayerCards(List<Card>? cardset, List<PlayerModel>? players)
         {
             if (cardset == null || players == null)
@@ -177,6 +194,22 @@ namespace Pokerface.Services
                 14 => "A",
                 _ => value.ToString()
             };
+        }
+        public static int CompareHands(
+           (int Rank, List<int> Tie, string HandName, string HandRank) hand1,
+           (int Rank, List<int> Tie, string HandName, string HandRank) hand2)
+        {
+            if (hand1.Rank != hand2.Rank)
+                return hand1.Rank.CompareTo(hand2.Rank);
+
+            // Compare tie lists element by element
+            for (int i = 0; i < Math.Min(hand1.Tie.Count, hand2.Tie.Count); i++)
+            {
+                if (hand1.Tie[i] != hand2.Tie[i])
+                    return hand1.Tie[i].CompareTo(hand2.Tie[i]);
+            }
+
+            return 0; // hands are completely equal
         }
 
     }
