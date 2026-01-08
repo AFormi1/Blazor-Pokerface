@@ -575,10 +575,10 @@ namespace Pokerface.Models
                 return;
 
             // Evaluate best hand for each player
-            var bestHands = new Dictionary<PlayerModel, (int Rank, List<int> Tie, string HandName)>();
+            var bestHands = new Dictionary<PlayerModel, (int Rank, List<int> Tie, string HandName, string HandRank)>();
             foreach (var p in activePlayers)
             {
-                var fullHand = new List<Card> { p.Card1!, p.Card2! };
+                List<Card> fullHand = new List<Card> { p.Card1!, p.Card2! };
                 fullHand.AddRange(CommunityCards);
                 bestHands[p] = GamePlayHelpers.EvaluateBestHand(fullHand);
             }
@@ -586,7 +586,7 @@ namespace Pokerface.Models
 
             // Find top hand(s)
             var topPlayers = new List<PlayerModel>();
-            (int Rank, List<int> Tie, string HandName) bestHand = (0, new List<int>(), "");
+            (int Rank, List<int> Tie, string HandName, string HandRank) bestHand = (0, new List<int>(), "", "");
 
             foreach (var kv in bestHands)
             {
@@ -610,30 +610,37 @@ namespace Pokerface.Models
             {
                 var handName = bestHands.ContainsKey(p) ? bestHands[p].HandName : "Keine Hand";
 
+                // Determine kicker text for this player
+                string kickerText = "";
+                if (bestHands.ContainsKey(p) && bestHands[p].Tie.Any())
+                {
+                    kickerText = "\nKicker: " + string.Join(", ", bestHands[p].Tie.Select(t => GamePlayHelpers.CardValueToString(t)));
+                }
+
                 if (topPlayers.Contains(p))
                 {
-                    string kickerText = "";
-
-                    // If tie, show kicker cards
-                    if (topPlayers.Count > 1 && bestHands[p].Tie.Any())
-                    {
-                        kickerText = "\nKicker: " + string.Join(", ", bestHands[p].Tie.Select(t => GamePlayHelpers.CardValueToString(t)));
-                    }
-
+                    // Winner messages
                     p.RemainingStack += potShare;
                     p.Result = topPlayers.Count > 1
                         ? $"Unentschieden!\nDeine beste Hand {handName}{kickerText}\nGewonnener Pot: {potShare}"
-                        : $"Du hast diese Runde gewonnen!\nDeine beste Hand {handName}\nGewinnener Pot: {potShare}";
+                        : $"Du hast diese Runde gewonnen!\nDeine beste Hand {handName}{kickerText}\nGewonnener Pot: {potShare}";
 
                     CurrentGame.TheWinners.Add(new PlayerModel(p, handName));
                 }
                 else
                 {
-                    p.Result = $"Du hast diese Runde verloren.\nDeine beste Hand {handName}\nGewonnener Pot: 0";
+                    // Lost player messages
+                    // Show kicker if they had the same hand type as winners
+                    bool sameHandAsWinner = topPlayers.Any(w => bestHands[w].HandRank == bestHands[p].HandRank);
+
+                    string lostKickerText = sameHandAsWinner ? kickerText : "";
+
+                    p.Result = $"Du hast diese Runde verloren.\nDeine beste Hand {handName}{lostKickerText}\nGewonnener Pot: 0";
                 }
 
                 p.IsNext = false;
             }
+
 
 
             CurrentGame.RoundLocked = false;
@@ -645,8 +652,8 @@ namespace Pokerface.Models
 
 
         private int CompareHands(
-            (int Rank, List<int> Tie, string HandName) hand1,
-            (int Rank, List<int> Tie, string HandName) hand2)
+            (int Rank, List<int> Tie, string HandName, string HandRank) hand1,
+            (int Rank, List<int> Tie, string HandName, string HandRank) hand2)
         {
             if (hand1.Rank != hand2.Rank)
                 return hand1.Rank.CompareTo(hand2.Rank);

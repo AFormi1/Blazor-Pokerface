@@ -56,14 +56,18 @@
 
     </div>
 
-    <div class="table-actions-overlay">
-        <button class="btn btn-primary"
-                @onclick="StartGame"
-                disabled="@NewGameDisabled">
-            Starte Spiel
-        </button>
-        <button class="btn btn-primary" @onclick="(() => ExitGame(true))">Verlassen</button>
-    </div>
+    @if(Session != null && Session.CurrentGame != null)
+    {
+        <div class="table-actions-overlay">
+            <button class="btn btn-primary"
+                    @onclick="StartGame"
+                    disabled="@NewGameDisabled">
+                Starte Spiel
+            </button>
+            <button class="btn btn-primary" @onclick="(() => ExitGame(true))">Verlassen</button>
+        </div>
+    }
+   
 
     @if (Session != null && Session.CurrentGame != null)
     {
@@ -142,7 +146,7 @@
     private List<(PokerCardModel c1, PokerCardModel c2)> PlayerCards = new();
     private List<PokerCardModel> CommunityCards = new();
 
-    public bool NewGameDisabled =>
+    private bool NewGameDisabled =>
         Session?.PlayersPending == null || Session.CurrentGame == null ||
         !(Session.PlayersPending.Count >= 2 && !Session.CurrentGame.RoundLocked);
 
@@ -159,6 +163,9 @@
             a.ActionType != EnumPlayerAction.BigBlind
         );
 
+    private bool sliderReset;
+    private int minAmount;
+    private int maxAmount;
 
 
     protected override void OnInitialized()
@@ -221,19 +228,34 @@
         });
     }
 
-    private bool sliderReset;
-    private int minAmount;
-    private int maxAmount;    
+
+
 
     private void ResetSlider()
     {
         if (Session?.AvailableActions == null || Me == null)
-        return;         
+            return;
 
-            minAmount = Session.AvailableActions.Where(a => a.RequiredAmount > 0).Min(a => a.RequiredAmount);
-            maxAmount = Math.Min(Me.RemainingStack, GetMaxBet());
-            SelectedAmount = minAmount;
+        var betActions = Session.AvailableActions
+            .Where(a => a.RequiredAmount > 0)
+            .ToList();
+
+        if (!betActions.Any())
+        {
+            // No slider-relevant actions → nothing to reset
+            SelectedAmount = 0;
+            minAmount = 0;
+            maxAmount = 0;
+            return;
+        }
+
+        minAmount = betActions.Min(a => a.RequiredAmount);
+        maxAmount = Math.Min(Me.RemainingStack, GetMaxBet());
+
+        SelectedAmount = minAmount;
+        return;
     }
+
 
     private void RebuildPlayersByChair()
     {

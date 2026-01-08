@@ -65,7 +65,7 @@ namespace Pokerface.Services
             cardset.RemoveAt(0);
         }
 
-        public static (int Rank, List<int> Tie, string HandName) EvaluateBestHand(List<Card> sevenCards)
+        public static (int Rank, List<int> Tie, string HandName, string HandRank) EvaluateBestHand(List<Card> sevenCards)
         {
             var cardValues = sevenCards.Select(c => (int)c.Rank)
                                        .OrderByDescending(v => v)
@@ -108,15 +108,24 @@ namespace Pokerface.Services
 
             // Straight flush / Royal flush
             if (isFlush && isStraight)
-                return (900 + straightHigh, new List<int> { straightHigh },
-                    straightHigh == (int)EnumCardRank.Ace ? "Royal Flush" : $"Straight Flush {RankToName(straightHigh)} high");
+            {
+                string handName = straightHigh == (int)EnumCardRank.Ace
+                    ? "Royal Flush"
+                    : $"Straight Flush {RankToName(straightHigh)} high";
+                return (900 + straightHigh, new List<int> { straightHigh }, handName, "RoyalFlush");
+            }
 
             if (groups[0].Count() == 4)
-                return (800 + groups[0].Key, groups.Select(g => g.Key).ToList(), $"Four of a Kind {RankToName(groups[0].Key)}");
+            {
+                string handName = $"Four of {RankToName(groups[0].Key)}";
+                return (800 + groups[0].Key, groups.Select(g => g.Key).ToList(), handName, "FourOfAKind");
+            }
 
             if (groups[0].Count() == 3 && groups.Count > 1 && groups[1].Count() >= 2)
-                return (700 + groups[0].Key, new List<int> { groups[1].Key, groups[0].Key },
-                    $"Full House {RankToName(groups[0].Key)} over {RankToName(groups[1].Key)}");
+            {
+                string handName = $"Full House {RankToName(groups[0].Key)} over {RankToName(groups[1].Key)}";
+                return (700 + groups[0].Key, new List<int> { groups[1].Key, groups[0].Key }, handName, "FullHouse");
+            }
 
             if (isFlush)
             {
@@ -124,24 +133,38 @@ namespace Pokerface.Services
                                                  .OrderByDescending(v => v)
                                                  .Take(5)
                                                  .ToList();
-                return (600 + flushCards[0], flushCards, $"Flush {RankToName(flushCards[0])} high");
+                string handName = $"Flush {RankToName(flushCards[0])} high";
+                return (600 + flushCards[0], flushCards, handName, "Flush");
             }
 
             if (isStraight)
-                return (500 + straightHigh, new List<int> { straightHigh }, $"Straight {RankToName(straightHigh)} high");
+            {
+                string handName = $"Straight {RankToName(straightHigh)} high";
+                return (500 + straightHigh, new List<int> { straightHigh }, handName, "Straight");
+            }
 
             if (groups[0].Count() == 3)
-                return (400 + groups[0].Key, groups.Select(g => g.Key).ToList(), $"Three of a Kind {RankToName(groups[0].Key)}");
+            {
+                string handName = $"Three {RankToName(groups[0].Key)}";
+                return (400 + groups[0].Key, groups.Select(g => g.Key).ToList(), handName, "ThreeOfAKind");
+            }
 
             if (groups[0].Count() == 2 && groups.Count > 1 && groups[1].Count() == 2)
-                return (300 + groups[0].Key, groups.Select(g => g.Key).ToList(),
-                    $"Two Pair {RankToName(groups[0].Key)} & {RankToName(groups[1].Key)}");
+            {
+                string handName = $"Two Pair {RankToName(groups[0].Key)} & {RankToName(groups[1].Key)}";
+                return (300 + groups[0].Key, groups.Select(g => g.Key).ToList(), handName, "TwoPair");
+            }
 
             if (groups[0].Count() == 2)
-                return (200 + groups[0].Key, groups.Select(g => g.Key).ToList(), $"One Pair {RankToName(groups[0].Key)}");
+            {
+                string handName = $"One Pair {RankToName(groups[0].Key)}";
+                return (200 + groups[0].Key, groups.Select(g => g.Key).ToList(), handName, "OnePair");
+            }
 
-            return (100 + groups[0].Key, groups.Select(g => g.Key).ToList(), $"High Card {RankToName(groups[0].Key)}");
+            string highCardName = $"High Card {RankToName(groups[0].Key)}";
+            return (100 + groups[0].Key, groups.Select(g => g.Key).ToList(), highCardName, "HighCard");
         }
+
 
 
         public static string CardValueToString(int value)
