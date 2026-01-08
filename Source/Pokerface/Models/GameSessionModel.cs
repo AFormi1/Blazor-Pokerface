@@ -104,7 +104,6 @@ namespace Pokerface.Models
                 player.PlayerInput -= OnPlayerActionComitted;
                 player.PlayerInput += OnPlayerActionComitted;
             }
-
             // Start with the Ante round
             CurrentGame.CurrentRound = BettingRound.Ante;
 
@@ -116,7 +115,6 @@ namespace Pokerface.Models
 
             OnSessionChanged?.Invoke(); // Wait for player input for ante
         }
-
 
 
 

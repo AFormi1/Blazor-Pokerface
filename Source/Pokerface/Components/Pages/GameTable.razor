@@ -20,42 +20,38 @@
         <div class="players-top">
             @for (int chair = 1; chair <= 3; chair++)
             {
-                <PlayerContainer
-                    PlayerChair="chair"
-                    Card1="@GetPlayerCard(chair).c1"
-                    Card2="@GetPlayerCard(chair).c2"
-                    Me="@Me"
-                    PlayersByChair="@PlayersByChair" />
+                <PlayerContainer PlayerChair="chair"
+                                 Card1="@GetPlayerCard(chair).c1"
+                                 Card2="@GetPlayerCard(chair).c2"
+                                 Me="@Me"
+                                 PlayersByChair="@PlayersByChair" />
             }
         </div>
 
         <div class="players-bottom">
             @for (int chair = 5; chair <= 7; chair++)
             {
-                <PlayerContainer
-                    PlayerChair="chair"
-                    Card1="@GetPlayerCard(chair).c1"
-                    Card2="@GetPlayerCard(chair).c2"
-                    Me="@Me"
-                    PlayersByChair="@PlayersByChair" />
+                <PlayerContainer PlayerChair="chair"
+                                 Card1="@GetPlayerCard(chair).c1"
+                                 Card2="@GetPlayerCard(chair).c2"
+                                 Me="@Me"
+                                 PlayersByChair="@PlayersByChair" />
             }
         </div>
 
-        <div class="player-pair-horizontal-right">    
-            <PlayerContainer
-                PlayerChair="4"
-                Card1="@GetPlayerCard(4).c1"
-                Card2="@GetPlayerCard(4).c2"
-                Me="@Me"
-                PlayersByChair="@PlayersByChair" />
+        <div class="player-pair-horizontal-right">
+            <PlayerContainer PlayerChair="4"
+                             Card1="@GetPlayerCard(4).c1"
+                             Card2="@GetPlayerCard(4).c2"
+                             Me="@Me"
+                             PlayersByChair="@PlayersByChair" />
         </div>
-        <div class="player-pair-horizontal-left"> 
-            <PlayerContainer
-                PlayerChair="8"
-                Card1="@GetPlayerCard(8).c1"
-                Card2="@GetPlayerCard(8).c2"
-                Me="@Me"
-                PlayersByChair="@PlayersByChair" />
+        <div class="player-pair-horizontal-left">
+            <PlayerContainer PlayerChair="8"
+                             Card1="@GetPlayerCard(8).c1"
+                             Card2="@GetPlayerCard(8).c2"
+                             Me="@Me"
+                             PlayersByChair="@PlayersByChair" />
         </div>
 
     </div>
@@ -107,8 +103,8 @@
                             @if (Session.AvailableActions.Any(a => a.RequiredAmount > 0))
                             {
                                 var minAmount = Session.AvailableActions
-                                    .Where(a => a.RequiredAmount > 0)
-                                    .Min(a => a.RequiredAmount);
+                                .Where(a => a.RequiredAmount > 0)
+                                .Min(a => a.RequiredAmount);
                                 var maxAmount = Math.Min(Me.RemainingStack, GetMaxBet());
                                 if (SelectedAmount < minAmount) SelectedAmount = minAmount;
 
@@ -216,8 +212,8 @@
 
     private void RebuildPlayersByChair()
     {
-        if (Session == null || Session.PlayersPending == null) 
-        return;
+        if (Session == null || Session.PlayersPending == null)
+            return;
 
         PlayersByChair = new Dictionary<int, PlayerModel?>();
 
@@ -239,8 +235,16 @@
             bool showFace = player == Me || Session.CurrentGame.CurrentRound == BettingRound.Showdown;
 
             var (c1, c2) = GetPlayerCard(chair);
-            if (player.Card1 != null) c1.SetCard(player.Card1, showFace);
-            if (player.Card2 != null) c2.SetCard(player.Card2, showFace);
+
+            if (player.Card1 != null)
+                c1.SetCard(player.Card1, showFace);
+            else
+                c1.HideCard();
+
+            if (player.Card2 != null)
+                c2.SetCard(player.Card2, showFace);
+            else
+                c2.HideCard();
         }
     }
 
