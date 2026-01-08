@@ -104,7 +104,7 @@ namespace Pokerface.Services
 
             bool isStraight = straightHigh != -1;
 
-            string RankToName(int rank) => Enum.GetName(typeof(EnumCardRank), rank) ?? rank.ToString();
+            static string RankToName(int rank) => Enum.GetName(typeof(EnumCardRank), rank) ?? rank.ToString();
 
             // Straight flush / Royal flush
             if (isFlush && isStraight)
@@ -171,10 +171,10 @@ namespace Pokerface.Services
         {
             return value switch
             {
-                1 => "A",
                 11 => "J",
                 12 => "Q",
                 13 => "K",
+                14 => "A",
                 _ => value.ToString()
             };
         }
