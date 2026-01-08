@@ -58,6 +58,16 @@ namespace Pokerface.Services
             if (session.GameTable == null)
                 return null;
 
+            //have a look, which player chair is free...
+            if (session.PlayersPending == null)
+                throw new ArgumentNullException("List is null");
+
+            int freeChair = Enumerable
+                .Range(1, TableModel.MaxPlayers)
+                .Except(session.PlayersPending
+                .Select(p => p.Chair))
+                .FirstOrDefault(-1);
+
             PlayerModel player = new PlayerModel(session.GameTable.CurrentPlayers + 1, playerName);
             await session.AddPlayer(player);
 

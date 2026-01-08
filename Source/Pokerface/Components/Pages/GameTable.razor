@@ -215,7 +215,7 @@
 
     private void RebuildPlayersByChair()
     {
-        if (Session == null) return;
+        if (Session == null || Session.PlayersPending == null) return;
 
         PlayersByChair = new Dictionary<int, PlayerModel?>();
 
@@ -229,7 +229,7 @@
     {
         if (Session?.CurrentGame == null || Me == null) return;
 
-        for (int chair = 0; chair < TableModel.MaxPlayers; chair++)
+        for (int chair = 1; chair <= 8; chair++)
         {
             if (!PlayersByChair.TryGetValue(chair, out var player) || player == null) continue;
 
