@@ -104,6 +104,7 @@ namespace Pokerface.Models
                 player.PlayerInput -= OnPlayerActionComitted;
                 player.PlayerInput += OnPlayerActionComitted;
             }
+
             // Start with the Ante round
             CurrentGame.CurrentRound = BettingRound.Ante;
 
@@ -142,55 +143,78 @@ namespace Pokerface.Models
                     break;
 
                 case EnumPlayerAction.Call:
-                    int callAmount = CurrentGame.CurrentBet - player.CurrentBet;
-                    player.CurrentBet += callAmount;
-                    player.RemainingStack -= callAmount;
-                    CurrentGame.Pot += callAmount;
-                    player.HasActedThisRound = true;
+                    {
+                        int callAmount = CurrentGame.CurrentBet - player.CurrentBet;
+                        int actualCall = Math.Min(callAmount, player.RemainingStack);
+                        player.CurrentBet += actualCall;
+                        player.RemainingStack -= actualCall;
+                        CurrentGame.Pot += actualCall;
+                        if (player.RemainingStack == 0) player.AllIn = true;
+                        player.HasActedThisRound = true;
+                    }
                     break;
 
                 case EnumPlayerAction.Bet:
                 case EnumPlayerAction.Raise:
                 case EnumPlayerAction.ReRaise:
-                    player.CurrentBet += action.CurrentBet;
-                    player.RemainingStack -= action.CurrentBet;
-                    CurrentGame.CurrentBet = Math.Max(CurrentGame.CurrentBet, player.CurrentBet);
-                    CurrentGame.Pot += action.CurrentBet;
-                    player.HasActedThisRound = true;
+                    {
+                        int totalBet = Math.Min(action.CurrentBet, player.RemainingStack);
+                        player.CurrentBet += totalBet;
+                        player.RemainingStack -= totalBet;
+                        CurrentGame.CurrentBet = Math.Max(CurrentGame.CurrentBet, player.CurrentBet);
+                        CurrentGame.Pot += totalBet;
+                        if (player.RemainingStack == 0) player.AllIn = true;
+                        player.HasActedThisRound = true;
+                    }
                     break;
 
                 case EnumPlayerAction.AllIn:
-                    player.CurrentBet += player.RemainingStack;
-                    CurrentGame.CurrentBet = Math.Max(CurrentGame.CurrentBet, player.CurrentBet);
-                    CurrentGame.Pot += player.RemainingStack;
-                    player.RemainingStack = 0;
-                    player.AllIn = true;
-                    player.HasActedThisRound = true;
+                    {
+                        int allInAmount = player.RemainingStack;
+                        player.CurrentBet += allInAmount;
+                        CurrentGame.CurrentBet = Math.Max(CurrentGame.CurrentBet, player.CurrentBet);
+                        CurrentGame.Pot += allInAmount;
+                        player.RemainingStack = 0;
+                        player.AllIn = true;
+                        player.HasActedThisRound = true;
+                    }
                     break;
 
                 case EnumPlayerAction.PostAnte:
-                    player.CurrentBet += CurrentGame.SmallBlind; // Ante equals SmallBlind
-                    player.RemainingStack -= CurrentGame.SmallBlind;
-                    CurrentGame.Pot += CurrentGame.SmallBlind;
-                    player.HasPostedAnte = true;
-                    player.HasActedThisRound = true;
+                    {
+                        int anteAmount = CurrentGame.SmallBlind; // or CurrentGame.AnteAmount if configurable
+                        int actualAnte = Math.Min(anteAmount, player.RemainingStack);
+                        player.CurrentBet += actualAnte;
+                        player.RemainingStack -= actualAnte;
+                        CurrentGame.Pot += actualAnte;
+                        player.HasPostedAnte = true;
+                        player.HasActedThisRound = true;
+                        if (player.RemainingStack == 0) player.AllIn = true;
+                    }
                     break;
 
-
                 case EnumPlayerAction.SmallBlind:
-                    player.CurrentBet += CurrentGame.SmallBlind;
-                    player.RemainingStack -= CurrentGame.SmallBlind;
-                    CurrentGame.Pot += CurrentGame.SmallBlind;
-                    player.HasPostedSmallBlind = true;
-                    CurrentGame.CurrentBet = Math.Max(CurrentGame.CurrentBet, CurrentGame.SmallBlind);
+                    {
+                        int sb = Math.Min(CurrentGame.SmallBlind, player.RemainingStack);
+                        player.CurrentBet += sb;
+                        player.RemainingStack -= sb;
+                        CurrentGame.Pot += sb;
+                        player.HasPostedSmallBlind = true;
+                        CurrentGame.CurrentBet = Math.Max(CurrentGame.CurrentBet, sb);
+                        if (player.RemainingStack == 0) player.AllIn = true;
+                    }
                     break;
 
                 case EnumPlayerAction.BigBlind:
-                    player.CurrentBet += CurrentGame.BigBlind;
-                    player.RemainingStack -= CurrentGame.BigBlind;
-                    CurrentGame.Pot += CurrentGame.BigBlind;
-                    player.HasPostedBigBlind = true;
-                    CurrentGame.CurrentBet = Math.Max(CurrentGame.CurrentBet, CurrentGame.BigBlind);
+                    {
+                        int bb = Math.Min(CurrentGame.BigBlind, player.RemainingStack);
+                        player.CurrentBet += bb;
+                        player.RemainingStack -= bb;
+                        CurrentGame.Pot += bb;
+                        player.HasPostedBigBlind = true;
+                        CurrentGame.CurrentBet = Math.Max(CurrentGame.CurrentBet, bb);
+                        if (player.RemainingStack == 0) player.AllIn = true;
+                    }
                     break;
 
                 case EnumPlayerAction.SitOut:
@@ -205,6 +229,9 @@ namespace Pokerface.Models
                 case EnumPlayerAction.Timeout:
                     player.HasActedThisRound = true;
                     break;
+
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(action.ActionType), "Unknown player action");
             }
 
             // Mark current player as done
@@ -288,7 +315,7 @@ namespace Pokerface.Models
                 return;
 
             var actions = new List<ActionOption>();
-            int playerIndex = CurrentGame.Players.IndexOf(player);
+            int playerIndex = CurrentGame.Players.IndexOf(player);           
 
             // Fold is always available
             actions.Add(new ActionOption(EnumPlayerAction.Fold, 0));
@@ -317,10 +344,8 @@ namespace Pokerface.Models
                     return;
                 }
             }
-
-            int callAmount = CurrentGame.CurrentBet - player.CurrentBet;
-
             // --- Call / Check ---
+            int callAmount = CurrentGame.CurrentBet - player.CurrentBet;
             if (callAmount > 0)
             {
                 if (player.RemainingStack >= callAmount)

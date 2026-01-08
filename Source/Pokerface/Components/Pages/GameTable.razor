@@ -100,14 +100,8 @@
                                 }
                             </div>
 
-                            @if (Session.AvailableActions.Any(a => a.RequiredAmount > 0))
-                            {
-                                var minAmount = Session.AvailableActions
-                                .Where(a => a.RequiredAmount > 0)
-                                .Min(a => a.RequiredAmount);
-                                var maxAmount = Math.Min(Me.RemainingStack, GetMaxBet());
-                                if (SelectedAmount < minAmount) SelectedAmount = minAmount;
-
+                            @if (IsSliderVisible)
+                            {                         
                                 <input type="range"
                                        min="@minAmount"
                                        max="@maxAmount"
@@ -115,6 +109,7 @@
                                        @bind-value="SelectedAmount"
                                        @bind-value:event="oninput" />
                             }
+
                         }
                     }
                     else
@@ -150,6 +145,20 @@
         Session?.PlayersPending == null || Session.CurrentGame == null ||
         !(Session.PlayersPending.Count >= 2 && !Session.CurrentGame.RoundLocked);
 
+    private bool IsSliderVisible =>
+        Session?.CurrentGame != null &&
+        Session?.AvailableActions != null &&
+        Me != null &&
+        Me.IsNext &&
+        Session.CurrentGame.CurrentRound != BettingRound.Ante &&
+        Session.CurrentGame.CurrentRound != BettingRound.Showdown &&
+        Session.AvailableActions.Any(a =>
+            a.RequiredAmount > 0 &&
+            a.ActionType != EnumPlayerAction.SmallBlind &&
+            a.ActionType != EnumPlayerAction.BigBlind
+        );
+
+
 
     protected override void OnInitialized()
     {
@@ -182,6 +191,7 @@
             RebuildPlayersByChair();
             MapPlayerCards();
             MapCommunityCards();
+            ResetSlider();
             StateHasChanged();
         });
     }
@@ -208,6 +218,20 @@
             MapCommunityCards();
             StateHasChanged();
         });
+    }
+
+    private bool sliderReset;
+    private int minAmount;
+    private int maxAmount;    
+
+    private void ResetSlider()
+    {
+        if (Session?.AvailableActions == null || Me == null)
+        return;         
+
+            minAmount = Session.AvailableActions.Where(a => a.RequiredAmount > 0).Min(a => a.RequiredAmount);
+            maxAmount = Math.Min(Me.RemainingStack, GetMaxBet());
+            SelectedAmount = minAmount;
     }
 
     private void RebuildPlayersByChair()
