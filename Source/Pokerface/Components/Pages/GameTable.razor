@@ -105,14 +105,15 @@
                             </div>
 
                             @if (IsSliderVisible)
-                            {                         
-                                <input type="range"
-                                       class="action-slider"
-                                       min="@minAmount"
-                                       max="@maxAmount"
-                                       step="5"
-                                       @bind-value="SelectedAmount"
-                                       @bind-value:event="oninput" />
+                            {                          
+                                <input 
+                                    type="range" 
+                                    class="action-slider" 
+                                    min="@minAmount"
+                                    max="@maxAmount" 
+                                    step="1" 
+                                    @bind-value="SelectedAmount" 
+                                    @bind-value:event="oninput" />
                             }
 
                         }
@@ -156,8 +157,6 @@
         Me != null &&
         Me.IsNext &&
         Session.CurrentGame.CurrentRound != BettingRound.Ante &&
-        Session.CurrentGame.CurrentRound != BettingRound.SmallBlind &&
-        Session.CurrentGame.CurrentRound != BettingRound.BigBlind &&
         Session.CurrentGame.CurrentRound != BettingRound.Showdown &&
         Session.AvailableActions.Any(a =>
             a.RequiredAmount > 0
@@ -241,17 +240,25 @@
         if (!betActions.Any())
         {
             // No slider-relevant actions → nothing to reset
-            SelectedAmount = 0;
+            //SelectedAmount = 0;
             minAmount = 0;
             maxAmount = 0;
             return;
         }
 
         minAmount = betActions.Min(a => a.RequiredAmount);
-        maxAmount = Math.Min(Me.RemainingStack, GetMaxBet());
+        maxAmount = Math.Min(Me.RemainingStack, Session.CurrentGame.MaxBet);
 
-        SelectedAmount = minAmount;
+        //SelectedAmount = minAmount;
         return;
+    }
+
+    private void OnSliderChanged(ChangeEventArgs e)
+    {
+        if (int.TryParse(e.Value?.ToString(), out int value))
+        {
+            SelectedAmount = value;
+        }
     }
 
 
@@ -349,15 +356,6 @@
         Me.TakeAction(option);
     }
 
-    private int GetMaxBet()
-    {
-        if (Session?.CurrentGame == null || Me == null) throw new ArgumentNullException();
-
-        int max = Math.Min(Me.RemainingStack, Session.CurrentGame.MaxBet);
-        if (SelectedAmount < Session.CurrentGame.MinBet) SelectedAmount = Session.CurrentGame.MinBet;
-        if (SelectedAmount > max) SelectedAmount = max;
-        return max;
-    }
 
     private (PokerCardModel c1, PokerCardModel c2) GetPlayerCard(int chair) =>
         PlayerCards[chair - 1]; // chairs 1–8 map to index 0–7
