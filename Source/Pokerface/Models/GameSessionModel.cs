@@ -90,6 +90,8 @@ namespace Pokerface.Models
             if (CurrentGame == null)
                 throw new ArgumentNullException("null objects found");
 
+            Console.WriteLine($"Restarting Round ...");
+
             CurrentGame.RestartRound(PlayersPending, lastDealerIndex);
 
             AvailableActions = new();
@@ -105,8 +107,21 @@ namespace Pokerface.Models
                 player.PlayerInput += OnPlayerActionComitted;
             }
 
-            // Start with the Ante round
-            CurrentGame.CurrentRound = BettingRound.Ante;
+            // --- Decide first round based on config ---
+            if (CurrentGame.Ante <= 0)
+            {
+                // No ante
+                if (CurrentGame.SmallBlind > 0)
+                    CurrentGame.CurrentRound = BettingRound.SmallBlind;
+                else if (CurrentGame.BigBlind > 0)
+                    CurrentGame.CurrentRound = BettingRound.BigBlind;
+                else
+                    CurrentGame.CurrentRound = BettingRound.Flop;
+            }
+            else
+            {
+                CurrentGame.CurrentRound = BettingRound.Ante;
+            }
 
             // First active player posts ante
             CurrentGame.CurrentPlayer = GetFirstActivePlayerAfterDealer();
@@ -117,8 +132,6 @@ namespace Pokerface.Models
             OnSessionChanged?.Invoke(); // Wait for player input for ante
         }
 
-
-
         private async Task OnPlayerActionComitted(PlayerModel player, PlayerAction action)
         {
             if (_dbTableService == null || PlayersPending == null)
@@ -126,6 +139,8 @@ namespace Pokerface.Models
 
             if (!player.IsNext)
                 return;
+
+            GamePlayHelpers.LogPlayerComitted(player, action);
 
             // --- Apply player's action ---
             switch (action.ActionType)
@@ -182,7 +197,7 @@ namespace Pokerface.Models
 
                 case EnumPlayerAction.PostAnte:
                     {
-                        int anteAmount = CurrentGame.SmallBlind; // or CurrentGame.AnteAmount if configurable
+                        int anteAmount = CurrentGame.Ante;
                         int actualAnte = Math.Min(anteAmount, player.RemainingStack);
                         player.CurrentBet += actualAnte;
                         player.RemainingStack -= actualAnte;
@@ -234,14 +249,12 @@ namespace Pokerface.Models
                     throw new ArgumentOutOfRangeException(nameof(action.ActionType), "Unknown player action");
             }
 
-            // Mark current player as done
             player.IsNext = false;
 
             // --- Check if only one active player remains ---
             var activePlayers = CurrentGame.Players.Where(p => !p.HasFolded && !p.IsSittingOut).ToList();
             if (activePlayers.Count == 1)
             {
-                // Only one player left: assign full pot and finish the round
                 await CalculateWinner();
                 return;
             }
@@ -249,10 +262,11 @@ namespace Pokerface.Models
             // --- Check if all remaining active players are all-in ---
             if (activePlayers.All(p => p.AllIn))
             {
-                // Deal all remaining community cards immediately
                 switch (CurrentGame.CurrentRound)
                 {
-                    case BettingRound.PreFlop:
+                    case BettingRound.Ante:
+                    case BettingRound.SmallBlind:
+                    case BettingRound.BigBlind:
                         GamePlayHelpers.DealFlop(CardSet, CommunityCards);
                         CurrentGame.CurrentRound = BettingRound.Flop;
                         goto case BettingRound.Flop;
@@ -278,12 +292,12 @@ namespace Pokerface.Models
             do
             {
                 CurrentGame.CurrentPlayer = (CurrentGame.CurrentPlayer + 1) % CurrentGame.Players.Count;
-            } while (CurrentGame.Players[CurrentGame.CurrentPlayer].HasFolded || CurrentGame.Players[CurrentGame.CurrentPlayer].IsSittingOut);
+            } while (CurrentGame.Players[CurrentGame.CurrentPlayer].HasFolded ||
+                     CurrentGame.Players[CurrentGame.CurrentPlayer].IsSittingOut);
 
             var nextPlayer = CurrentGame.Players[CurrentGame.CurrentPlayer];
             nextPlayer.IsNext = true;
 
-            // If the next player is sitting out or left, auto-fold
             if (nextPlayer.IsSittingOut)
             {
                 await OnPlayerActionComitted(nextPlayer, new PlayerAction { ActionType = EnumPlayerAction.Fold });
@@ -292,12 +306,12 @@ namespace Pokerface.Models
 
             UpdateAvailableActions(nextPlayer);
 
-            // Check if betting round is complete
             if (IsBettingRoundComplete())
                 await AdvanceRound();
 
             OnSessionChanged?.Invoke();
         }
+
 
 
         public void UpdateAvailableActions(PlayerModel player)
@@ -306,98 +320,80 @@ namespace Pokerface.Models
                 throw new ArgumentNullException("null objects found");
 
             AvailableActions.Clear();
-
-            // Only active player's turn
-            if (!player.IsNext)
-                return;
-
-            if (CurrentGame.CurrentRound == BettingRound.Showdown)
+            if (!player.IsNext || CurrentGame.CurrentRound == BettingRound.Showdown)
                 return;
 
             var actions = new List<ActionOption>();
-            int playerIndex = CurrentGame.Players.IndexOf(player);           
+            int playerIndex = CurrentGame.Players.IndexOf(player);
 
-            // Fold is always available
+            // Fold is always allowed
             actions.Add(new ActionOption(EnumPlayerAction.Fold, 0));
 
-            if (CurrentGame.CurrentRound == BettingRound.Ante)
+            switch (CurrentGame.CurrentRound)
             {
-                actions.Add(new ActionOption(EnumPlayerAction.PostAnte, CurrentGame.SmallBlind));
-                AvailableActions = actions;
-                return;
-            }
+                case BettingRound.Ante:
+                    if (CurrentGame.Ante > 0 && !player.HasPostedAnte)
+                        actions.Add(new ActionOption(EnumPlayerAction.PostAnte, CurrentGame.Ante));
+                    break;
 
-            // --- PRE-FLOP BLINDS ---
-            if (CurrentGame.CurrentRound == BettingRound.PreFlop)
-            {
-                if (playerIndex == CurrentGame.SmallBlindIndex && !player.HasPostedSmallBlind)
-                {
-                    actions.Add(new ActionOption(EnumPlayerAction.SmallBlind, CurrentGame.SmallBlind));
-                    AvailableActions = actions;
-                    return;
-                }
+                case BettingRound.SmallBlind:
+                    if (playerIndex == CurrentGame.SmallBlindIndex && !player.HasPostedSmallBlind)
+                        actions.Add(new ActionOption(EnumPlayerAction.SmallBlind, CurrentGame.SmallBlind));
+                    else
+                        goto default; // normal betting
+                    break;
 
-                if (playerIndex == CurrentGame.BigBlindIndex && !player.HasPostedBigBlind)
-                {
-                    actions.Add(new ActionOption(EnumPlayerAction.BigBlind, CurrentGame.BigBlind));
-                    AvailableActions = actions;
-                    return;
-                }
-            }
-            // --- Call / Check ---
-            int callAmount = CurrentGame.CurrentBet - player.CurrentBet;
-            if (callAmount > 0)
-            {
-                if (player.RemainingStack >= callAmount)
-                {
-                    actions.Add(new ActionOption(EnumPlayerAction.Call, callAmount));
-                }
-                else
-                {
-                    // Player can't fully call, only all-in
-                    actions.Add(new ActionOption(EnumPlayerAction.AllIn, player.RemainingStack));
-                    AvailableActions = actions;
-                    return;
-                }
-            }
-            else
-            {
-                actions.Add(new ActionOption(EnumPlayerAction.Check, 0));
-            }
+                case BettingRound.BigBlind:
+                    if (playerIndex == CurrentGame.BigBlindIndex && !player.HasPostedBigBlind)
+                        actions.Add(new ActionOption(EnumPlayerAction.BigBlind, CurrentGame.BigBlind));
+                    else
+                        goto default; // normal betting
+                    break;
 
-            // --- Bet / Raise ---
-            int minBetOrRaise = CurrentGame.CurrentBet == 0 ? CurrentGame.MinBet : Math.Max(CurrentGame.MinBet, callAmount);
+                default:
+                    // Normal betting round: Call / Check / Bet / Raise / AllIn
+                    int callAmount = CurrentGame.CurrentBet - player.CurrentBet;
 
-            if (player.RemainingStack >= minBetOrRaise)
-            {
-                if (CurrentGame.CurrentBet == 0)
-                    actions.Add(new ActionOption(EnumPlayerAction.Bet, minBetOrRaise));
-                else
-                    actions.Add(new ActionOption(EnumPlayerAction.Raise, minBetOrRaise));
-            }
-            else if (player.RemainingStack > 0)
-            {
-                // Player can't meet minimum bet/raise → All-in is the only option
-                actions.Add(new ActionOption(EnumPlayerAction.AllIn, player.RemainingStack));
-                AvailableActions = actions;
-                return;
-            }
+                    // Call or Check
+                    if (callAmount > 0)
+                    {
+                        if (player.RemainingStack >= callAmount)
+                            actions.Add(new ActionOption(EnumPlayerAction.Call, callAmount));
+                        else
+                            actions.Add(new ActionOption(EnumPlayerAction.AllIn, player.RemainingStack)); // can't fully call
+                    }
+                    else
+                    {
+                        actions.Add(new ActionOption(EnumPlayerAction.Check, 0));
+                    }
 
-            // --- All-in ---
-            if (player.RemainingStack > 0 && !actions.Any(a => a.ActionType == EnumPlayerAction.AllIn))
-                actions.Add(new ActionOption(EnumPlayerAction.AllIn, player.RemainingStack));
+                    // Bet or Raise
+                    int minBetOrRaise = CurrentGame.CurrentBet == 0 ? CurrentGame.MinBet : Math.Max(CurrentGame.MinBet, callAmount);
+                    if (player.RemainingStack >= minBetOrRaise)
+                    {
+                        if (CurrentGame.CurrentBet == 0)
+                            actions.Add(new ActionOption(EnumPlayerAction.Bet, minBetOrRaise));
+                        else
+                            actions.Add(new ActionOption(EnumPlayerAction.Raise, minBetOrRaise));
+                    }
+                    else if (player.RemainingStack > 0 && player.RemainingStack < minBetOrRaise)
+                    {
+                        // Only All-in available if they cannot meet minBetOrRaise
+                        actions.Add(new ActionOption(EnumPlayerAction.AllIn, player.RemainingStack));
+                    }
+                    break;
+            }
 
             AvailableActions = actions;
+
+            GamePlayHelpers.LogGameOptions(player, AvailableActions);
         }
-
-
 
         private async Task AdvanceRound()
         {
-            if (_dbTableService == null || PlayersPending == null || AvailableActions == null)
-                throw new ArgumentNullException("null objects found");
+            if (AvailableActions == null)
+                throw new ArgumentNullException("vailableActions == null");
 
-            // Clear per-round flags
             foreach (var p in CurrentGame.Players)
             {
                 p.HasActedThisRound = false;
@@ -412,38 +408,45 @@ namespace Pokerface.Models
             {
                 case BettingRound.Ante:
                     GamePlayHelpers.DealPlayerCards(CardSet, CurrentGame.Players);
-                    CurrentGame.CurrentRound = BettingRound.PreFlop;
+                    CurrentGame.CurrentRound = CurrentGame.SmallBlind > 0 ? BettingRound.SmallBlind
+                                                : CurrentGame.BigBlind > 0 ? BettingRound.BigBlind
+                                                : BettingRound.Flop;
                     break;
 
-                case BettingRound.PreFlop:
-                    GamePlayHelpers.DealFlop(CardSet, CommunityCards);
+                case BettingRound.SmallBlind:
+                    CurrentGame.CurrentRound = CurrentGame.BigBlind > 0 ? BettingRound.BigBlind : BettingRound.Flop;
+                    break;
+
+                case BettingRound.BigBlind:
                     CurrentGame.CurrentRound = BettingRound.Flop;
                     break;
 
                 case BettingRound.Flop:
-                    GamePlayHelpers.DealTurn(CardSet, CommunityCards);
+                    GamePlayHelpers.DealFlop(CardSet, CommunityCards);
                     CurrentGame.CurrentRound = BettingRound.Turn;
                     break;
 
                 case BettingRound.Turn:
-                    GamePlayHelpers.DealRiver(CardSet, CommunityCards);
+                    GamePlayHelpers.DealTurn(CardSet, CommunityCards);
                     CurrentGame.CurrentRound = BettingRound.River;
                     break;
 
                 case BettingRound.River:
+                    GamePlayHelpers.DealRiver(CardSet, CommunityCards);
                     CurrentGame.CurrentRound = BettingRound.Showdown;
                     await CalculateWinner();
                     return;
             }
 
-            // Assign NEXT SINGLE player
+            // Start with first active player
             CurrentGame.CurrentPlayer = GetFirstActivePlayerAfterDealer();
             CurrentGame.Players[CurrentGame.CurrentPlayer].IsNext = true;
             UpdateAvailableActions(CurrentGame.Players[CurrentGame.CurrentPlayer]);
 
+            Console.WriteLine($"End of AdvanceRound ...");
+
             OnSessionChanged?.Invoke();
         }
-
 
         private async Task UpdateLooserAndSession()
         {
@@ -469,6 +472,8 @@ namespace Pokerface.Models
                     await RemovePlayer(busted);
                 });
             }
+
+            Console.WriteLine($"Round finished!");
 
             // Now execute all tasks in parallel, but do not await them
             _ = Task.WhenAll(lostTasks.Select(f => f()));
@@ -498,7 +503,6 @@ namespace Pokerface.Models
             return CurrentGame.DealerIndex;
         }
 
-
         private bool IsBettingRoundComplete()
         {
             if (CurrentGame == null || CurrentGame.Players == null)
@@ -518,8 +522,6 @@ namespace Pokerface.Models
             // Normal check for other rounds
             return activePlayers.All(p => p.CurrentBet == CurrentGame.CurrentBet || p.AllIn);
         }
-
-
 
         private async Task CalculateWinner()
         {
@@ -589,13 +591,13 @@ namespace Pokerface.Models
 
             foreach (var kv in bestHands)
             {
-                if (bestHand.Rank == 0 || CompareHands(kv.Value, bestHand) > 0)
+                if (bestHand.Rank == 0 || GamePlayHelpers.CompareHands(kv.Value, bestHand) > 0)
                 {
                     topPlayers.Clear();
                     topPlayers.Add(kv.Key);
                     bestHand = kv.Value;
                 }
-                else if (CompareHands(kv.Value, bestHand) == 0)
+                else if (GamePlayHelpers.CompareHands(kv.Value, bestHand) == 0)
                 {
                     topPlayers.Add(kv.Key); // tie
                 }
@@ -649,25 +651,6 @@ namespace Pokerface.Models
 
             await UpdateLooserAndSession();
         }
-
-
-        private int CompareHands(
-            (int Rank, List<int> Tie, string HandName, string HandRank) hand1,
-            (int Rank, List<int> Tie, string HandName, string HandRank) hand2)
-        {
-            if (hand1.Rank != hand2.Rank)
-                return hand1.Rank.CompareTo(hand2.Rank);
-
-            // Compare tie lists element by element
-            for (int i = 0; i < Math.Min(hand1.Tie.Count, hand2.Tie.Count); i++)
-            {
-                if (hand1.Tie[i] != hand2.Tie[i])
-                    return hand1.Tie[i].CompareTo(hand2.Tie[i]);
-            }
-
-            return 0; // hands are completely equal
-        }
-
 
         public async ValueTask DisposeAsync()
         {

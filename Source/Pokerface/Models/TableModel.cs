@@ -13,9 +13,20 @@ namespace Pokerface.Models
 
         [Required(ErrorMessage = "Name darf nicht leer oder bereits verwendet sein")]
         public string Name { get; set; } = string.Empty;
-        public int MinBet { get; set; } = 5;
+
+        [Range(0, int.MaxValue, ErrorMessage = "Muss >= 0 sein")]
+        public int Ante { get; set; } = 5;
+
+        [Range(0, int.MaxValue, ErrorMessage = "Muss >= 0 sein")]
         public int SmallBlind { get; set; } = 5;
+
+        [Range(0, int.MaxValue, ErrorMessage = "Muss >= 0 sein")]
         public int BigBlind { get; set; } = 10;
+
+        [Range(0, int.MaxValue, ErrorMessage = "Muss >= 0 sein")]
+        public int MinBet { get; set; } = 5;
+
+        [Range(0, int.MaxValue, ErrorMessage = "Muss >= 0 sein")]
         public int MaxBet { get; set; } = 10000;
 
         #endregion
