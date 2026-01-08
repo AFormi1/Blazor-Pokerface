@@ -1,8 +1,6 @@
-﻿using Pokerface.Components.Card;
-using Pokerface.Enums;
+﻿using Pokerface.Enums;
 using Pokerface.Services;
 using Pokerface.Services.DB;
-using System.Threading.Tasks;
 
 namespace Pokerface.Models
 {
@@ -10,24 +8,21 @@ namespace Pokerface.Models
     {
         private readonly DbTableService? _dbTableService;
 
-
         public delegate void PlayerLostEventHandler(PlayerModel player);
         public event PlayerLostEventHandler? OnPlayerLost;
 
         public event Action? OnSessionChanged;
 
-        public int Id { get; set; }
-
-        public TableModel? GameTable { get; set; } = new TableModel();
+        public TableModel CurrentGame { get; set; }
         public List<PlayerModel>? PlayersPending { get; set; } = new List<PlayerModel>();
         public List<Card>? CardSet { get; set; }
         public List<Card>? CommunityCards { get; set; }
-        public GameContext? CurrentGame { get; set; } = new GameContext();
         public List<ActionOption>? AvailableActions { get; private set; } = new();
 
-        public GameSessionModel(DbTableService dbTableService)
+        public GameSessionModel(DbTableService dbTableService, TableModel selectedTable)
         {
             _dbTableService = dbTableService;
+            CurrentGame = selectedTable;
         }
 
         public PlayerModel? GetPlayerById(int player)
@@ -37,15 +32,15 @@ namespace Pokerface.Models
 
         public async Task AddPlayer(PlayerModel player)
         {
-            if (_dbTableService == null || PlayersPending == null || GameTable == null)
+            if (_dbTableService == null || PlayersPending == null)
                 throw new ArgumentNullException("null objects found in AddPlayer");
 
             PlayersPending.Add(player);
 
-            GameTable.CurrentPlayers = PlayersPending.Count;
+            CurrentGame.CurrentPlayers = PlayersPending.Count;
 
             //Update the TableModel in DB
-            await _dbTableService.SaveItemAsync(GameTable);
+            await _dbTableService.SaveItemAsync(CurrentGame);
 
             OnSessionChanged?.Invoke();
 
@@ -53,7 +48,7 @@ namespace Pokerface.Models
 
         public async Task RemovePlayer(PlayerModel player)
         {
-            if (_dbTableService == null || PlayersPending == null || GameTable == null || CurrentGame == null)
+            if (_dbTableService == null || PlayersPending == null)
                 throw new ArgumentNullException("null objects found in RemovePlayer");
 
             // Mark as folded / sitting out
@@ -65,10 +60,10 @@ namespace Pokerface.Models
                 await OnPlayerActionComitted(player, new PlayerAction { ActionType = EnumPlayerAction.Fold });
 
             PlayersPending.Remove(player);
-            GameTable.CurrentPlayers = PlayersPending.Count();
+            CurrentGame.CurrentPlayers = PlayersPending.Count();
 
             // Update DB
-            await _dbTableService.SaveItemAsync(GameTable);
+            await _dbTableService.SaveItemAsync(CurrentGame);
 
             // If everyone left, close the session
             if (PlayersPending.All(p => p.IsSittingOut))
@@ -82,7 +77,7 @@ namespace Pokerface.Models
 
         public async Task StartGame()
         {
-            if (_dbTableService == null || PlayersPending == null || GameTable == null || CurrentGame == null)
+            if (_dbTableService == null || PlayersPending == null)
                 throw new ArgumentNullException("null objects found");
 
             // Reset the deck and community cards
@@ -91,7 +86,12 @@ namespace Pokerface.Models
 
             // Initialize the game context
             int lastDealerIndex = CurrentGame != null ? CurrentGame.DealerIndex : 0;
-            CurrentGame = new GameContext(PlayersPending, lastDealerIndex);
+
+            if (CurrentGame == null)
+                throw new ArgumentNullException("null objects found");
+
+            CurrentGame.RestartRound(PlayersPending, lastDealerIndex);
+
             AvailableActions = new();
 
             if (CurrentGame.Players.Count < 2)
@@ -121,7 +121,7 @@ namespace Pokerface.Models
 
         private async Task OnPlayerActionComitted(PlayerModel player, PlayerAction action)
         {
-            if (_dbTableService == null || PlayersPending == null || GameTable == null || CurrentGame == null)
+            if (_dbTableService == null || PlayersPending == null)
                 throw new ArgumentNullException("null objects found");
 
             if (!player.IsNext)
@@ -302,7 +302,7 @@ namespace Pokerface.Models
 
         public void UpdateAvailableActions(PlayerModel player)
         {
-            if (_dbTableService == null || PlayersPending == null || GameTable == null || CurrentGame == null || AvailableActions == null)
+            if (_dbTableService == null || PlayersPending == null || AvailableActions == null)
                 throw new ArgumentNullException("null objects found");
 
             AvailableActions.Clear();
@@ -394,7 +394,7 @@ namespace Pokerface.Models
 
         private async Task AdvanceRound()
         {
-            if (_dbTableService == null || PlayersPending == null || GameTable == null || CurrentGame == null || AvailableActions == null)
+            if (_dbTableService == null || PlayersPending == null || AvailableActions == null)
                 throw new ArgumentNullException("null objects found");
 
             // Clear per-round flags
@@ -476,7 +476,7 @@ namespace Pokerface.Models
 
         private int GetFirstActivePlayerAfterDealer()
         {
-            if (_dbTableService == null || PlayersPending == null || GameTable == null || CurrentGame == null || AvailableActions == null)
+            if (_dbTableService == null || PlayersPending == null || AvailableActions == null)
                 throw new ArgumentNullException("null objects found");
 
             if (CurrentGame.Players.Count < 2)
@@ -523,7 +523,7 @@ namespace Pokerface.Models
 
         private async Task CalculateWinner()
         {
-            if (_dbTableService == null || PlayersPending == null || GameTable == null || CurrentGame == null || AvailableActions == null)
+            if (_dbTableService == null || PlayersPending == null || AvailableActions == null)
                 throw new ArgumentNullException("null objects found");
 
             if (CurrentGame.RoundFinished)
@@ -671,17 +671,15 @@ namespace Pokerface.Models
 
         public async ValueTask DisposeAsync()
         {
-            if (_dbTableService == null || PlayersPending == null || GameTable == null || CurrentGame == null || AvailableActions == null)
+            if (_dbTableService == null || PlayersPending == null || AvailableActions == null)
                 throw new ArgumentNullException("null objects found");
 
             if (_dbTableService != null)
-                await _dbTableService.SaveItemAsync(GameTable);
+                await _dbTableService.SaveItemAsync(CurrentGame);
 
-            GameTable = null;
             PlayersPending = null;
             CardSet = null;
             CommunityCards = null;
-            CurrentGame = null;
             AvailableActions = null;
 
             return;

@@ -19,7 +19,7 @@ namespace Pokerface.Services
 
         public GameSessionModel? GetGameSessionById(int sessionId)
         {
-            return GameSessions.FirstOrDefault(s => s.Id == sessionId);
+            return GameSessions.FirstOrDefault(s => s.CurrentGame.Id == sessionId);
         }
 
 
@@ -27,22 +27,19 @@ namespace Pokerface.Services
         {
             // Try to find an existing session for the table
             GameSessionModel? session = GameSessions
-                .FirstOrDefault(s => s.GameTable?.Id == table.Id);
+                .FirstOrDefault(s => s.CurrentGame?.Id == table.Id);
 
             if (session == null)
             {
                 // No session exists --> create a new one
-                session = new GameSessionModel(_tableService)
-                {
-                    Id = table.Id,
-                    GameTable = table
-                };
+                session = new GameSessionModel(_tableService, table);
+    
                 GameSessions.Add(session);
             }
             else
             {
                 // Session exists --> check if table is full
-                if (session.GameTable?.CurrentPlayers >= TableModel.MaxPlayers)
+                if (session.CurrentGame?.CurrentPlayers >= TableModel.MaxPlayers)
                     return null; // table full
 
 
@@ -55,7 +52,7 @@ namespace Pokerface.Services
             }
 
             // Add the player
-            if (session.GameTable == null || session.PlayersPending == null)
+            if (session.CurrentGame == null || session.PlayersPending == null)
                 throw new ArgumentNullException("objects are null");
 
             int freeChair = Enumerable
@@ -66,7 +63,7 @@ namespace Pokerface.Services
             PlayerModel player = new PlayerModel(freeChair, playerName);
             await session.AddPlayer(player);
 
-            CurrentTableUsersChanged?.Invoke(this, session.GameTable);
+            CurrentTableUsersChanged?.Invoke(this, session.CurrentGame);
 
             return player.Id;
         }
@@ -76,8 +73,8 @@ namespace Pokerface.Services
         {
             await session.RemovePlayer(player);
 
-            if (session.GameTable != null)
-                CurrentTableUsersChanged?.Invoke(this, session.GameTable);
+            if (session.CurrentGame != null)
+                CurrentTableUsersChanged?.Invoke(this, session.CurrentGame);
 
             // If no players left, remove the session
             if (session.PlayersPending?.Count == 0)
@@ -86,11 +83,11 @@ namespace Pokerface.Services
 
         public async Task RemoveSession(GameSessionModel? session)
         {
-            if (session == null || session.GameTable == null)
+            if (session == null || session.CurrentGame == null)
                 return;
 
-            session.GameTable.CurrentPlayers = 0;
-            CurrentTableUsersChanged?.Invoke(this, session.GameTable);
+            session.CurrentGame.CurrentPlayers = 0;
+            CurrentTableUsersChanged?.Invoke(this, session.CurrentGame);
 
             GameSessions.Remove(session);
 
@@ -99,6 +96,5 @@ namespace Pokerface.Services
             session = null;
 
         }
-
     }
 }
