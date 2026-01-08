@@ -326,29 +326,48 @@ namespace Pokerface.Models
 
             if (CurrentGame.CurrentRound == BettingRound.Ante)
             {
-                actions.Add(new ActionOption(EnumPlayerAction.PostAnte, CurrentGame.SmallBlind));
-                AvailableActions = actions;
-                GamePlayHelpers.LogGameOptions(player, AvailableActions);
-                return;
+                //skip this section, if Ante is not apllied
+                if (CurrentGame.Ante == 0)
+                {
+                    CurrentGame.CurrentRound = BettingRound.PreFlop;
+                }
+                else
+                {
+                    actions.Add(new ActionOption(EnumPlayerAction.PostAnte, CurrentGame.SmallBlind));
+                    AvailableActions = actions;
+                    GamePlayHelpers.LogGameOptions(player, AvailableActions);
+                    return;
+                }
             }
 
             // --- PRE-FLOP BLINDS ---
             if (CurrentGame.CurrentRound == BettingRound.PreFlop)
             {
-                if (playerIndex == CurrentGame.SmallBlindIndex && !player.HasPostedSmallBlind)
-                {
-                    actions.Add(new ActionOption(EnumPlayerAction.SmallBlind, CurrentGame.SmallBlind));
-                    AvailableActions = actions;
-                    GamePlayHelpers.LogGameOptions(player, AvailableActions);
-                    return;
-                }
+                bool noBlinds = CurrentGame.SmallBlind == 0 || CurrentGame.BigBlind == 0;
 
-                if (playerIndex == CurrentGame.BigBlindIndex && !player.HasPostedBigBlind)
+                if (noBlinds)
                 {
-                    actions.Add(new ActionOption(EnumPlayerAction.BigBlind, CurrentGame.BigBlind));
-                    AvailableActions = actions;
-                    GamePlayHelpers.LogGameOptions(player, AvailableActions);
-                    return;
+                    // No forced bets at all → just ensure cards are dealt
+                    HandOutPlayerCardsIfNeeded();
+                    // IMPORTANT: do NOT mark blinds as posted
+                }
+                else
+                {
+                    if (playerIndex == CurrentGame.SmallBlindIndex && !player.HasPostedSmallBlind)
+                    {
+                        actions.Add(new ActionOption(EnumPlayerAction.SmallBlind, CurrentGame.SmallBlind));
+                        AvailableActions = actions;
+                        GamePlayHelpers.LogGameOptions(player, AvailableActions);
+                        return;
+                    }
+
+                    if (playerIndex == CurrentGame.BigBlindIndex && !player.HasPostedBigBlind)
+                    {
+                        actions.Add(new ActionOption(EnumPlayerAction.BigBlind, CurrentGame.BigBlind));
+                        AvailableActions = actions;
+                        GamePlayHelpers.LogGameOptions(player, AvailableActions);
+                        return;
+                    }
                 }
             }
             // --- Call / Check ---
@@ -418,14 +437,17 @@ namespace Pokerface.Models
             CurrentGame.CurrentBet = 0;
             AvailableActions.Clear();
 
+
             switch (CurrentGame.CurrentRound)
             {
                 case BettingRound.Ante:
-                    GamePlayHelpers.DealPlayerCards(CardSet, CurrentGame.Players);
+                    HandOutPlayerCardsIfNeeded();
                     CurrentGame.CurrentRound = BettingRound.PreFlop;
                     break;
 
                 case BettingRound.PreFlop:
+                    //give every Player two Cards, if they dont have it (in Case, if we skipped Ante/SmallBlind/BigBild
+                    HandOutPlayerCardsIfNeeded();
                     GamePlayHelpers.DealFlop(CardSet, CommunityCards);
                     CurrentGame.CurrentRound = BettingRound.Flop;
                     break;
@@ -682,6 +704,16 @@ namespace Pokerface.Models
 
             return 0; // hands are completely equal
         }
+
+        private void HandOutPlayerCardsIfNeeded()
+        {
+            if (!CurrentGame.PlayersGotCards)
+            {
+                CurrentGame.PlayersGotCards = true;
+                GamePlayHelpers.DealPlayerCards(CardSet, CurrentGame.Players);
+            }
+        }
+
 
 
         public async ValueTask DisposeAsync()
