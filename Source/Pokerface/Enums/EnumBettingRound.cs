@@ -3,8 +3,7 @@
     public enum BettingRound
     {
         Ante,
-        SmallBlind,
-        BigBlind,
+        PreFlop,
         Flop,
         Turn,
         River,

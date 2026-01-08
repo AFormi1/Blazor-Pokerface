@@ -100,8 +100,13 @@
     }
 
 
-    private string GetPlayerText(int id) =>
-        PlayersByChair != null && PlayersByChair.TryGetValue(id, out var p) ? $"Pot: {p?.RemainingStack} | {p?.Name}" ?? $"Freier Platz {id}" : $"Freier Platz {id}";
+    private string GetPlayerText(int id)
+    {
+        if (PlayersByChair != null && PlayersByChair.TryGetValue(id, out var p) && p != null)
+            return $"Pot: {p.RemainingStack} | {p.Name}";
+
+        return $"Freier Platz {id}";
+    }
 
     private string GetPlayerColor(int id) =>
         PlayersByChair != null && Me != null && PlayersByChair.TryGetValue(id, out var p) && p == Me ? "color: orange;" : "color: white;";
