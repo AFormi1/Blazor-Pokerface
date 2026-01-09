@@ -186,7 +186,7 @@ namespace Pokerface.Models
 
                 case EnumPlayerAction.PostAnte:
                     {
-                        int anteAmount = CurrentGame.SmallBlind; // or CurrentGame.AnteAmount if configurable
+                        int anteAmount = CurrentGame.Ante;
                         int actualAnte = Math.Min(anteAmount, player.RemainingStack);
                         player.CurrentBet += actualAnte;
                         player.RemainingStack -= actualAnte;
