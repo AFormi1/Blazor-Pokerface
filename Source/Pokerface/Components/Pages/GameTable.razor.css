@@ -96,10 +96,14 @@
 
 .action-mask-game {
     position: absolute;
-    top: 60%;
+    top: 30%;
     left: 50%;
     transform: translateX(-50%);
     z-index: 100;
+    background-color: rgba(255, 165, 0, 0.6);
+    border: 0.1em solid rgb(255, 165, 0);
+    border-radius: 0.5em;
+    padding: 10px;
 }
 
 .action-mask-player {
@@ -142,6 +146,18 @@
     }
 }
 
+.action-mask-label {
+    font-weight: bold;
+    text-align: center;
+    white-space: pre-line;
+    color: white;
+    font-size: 1.2rem;
+}
+
+/* animated state */
+.center-label--active {
+    animation: borderPulse 1.2s linear infinite;
+}
 
 .action-title {
     font-weight: bold;
