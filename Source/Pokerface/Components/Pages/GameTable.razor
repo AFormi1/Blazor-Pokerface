@@ -56,7 +56,7 @@
 
     </div>
 
-    @if(Session != null && Session.CurrentGame != null)
+    @if (Session != null && Session.CurrentGame != null)
     {
         <div class="table-actions-overlay">
             <button class="btn btn-primary"
@@ -67,7 +67,7 @@
             <button class="btn btn-primary" @onclick="(() => ExitGame(true))">Verlassen</button>
         </div>
     }
-   
+
 
     @if (Session != null && Session.CurrentGame != null)
     {
@@ -80,7 +80,7 @@
         </div>
 
         <div class="action-mask-player">
-             <div class="action-panel @(Me?.IsNext == true ? "action-panel--active" : "action-panel")">
+            <div class="action-panel @(Me?.IsNext == true ? "action-panel--active" : "action-panel")">
                 @if (Session.CurrentGame.RoundFinished)
                 {
                     <div class="action-title">@Me?.Result</div>
@@ -105,15 +105,14 @@
                             </div>
 
                             @if (IsSliderVisible)
-                            {                          
-                                <input 
-                                    type="range" 
-                                    class="action-slider" 
-                                    min="@minAmount"
-                                    max="@maxAmount" 
-                                    step="1" 
-                                    @bind-value="SelectedAmount" 
-                                    @bind-value:event="oninput" />
+                            {
+                                <input type="range"
+                                       class="action-slider"
+                                       min="@minAmount"
+                                       max="@maxAmount"
+                                       step="@step"
+                                       @bind-value="SelectedAmount"
+                                       @bind-value:event="oninput" />
                             }
 
                         }
@@ -164,6 +163,7 @@
 
     private int minAmount;
     private int maxAmount;
+    private decimal step;
 
     protected override void OnInitialized()
     {
@@ -243,11 +243,17 @@
             //SelectedAmount = 0;
             minAmount = 0;
             maxAmount = 0;
+            step = 0;
             return;
         }
 
         minAmount = betActions.Min(a => a.RequiredAmount);
         maxAmount = Math.Min(Me.RemainingStack, Session.CurrentGame.MaxBet);
+
+        step = Math.Round((maxAmount - minAmount) / 50m, 1);
+        step = Math.Abs(step);
+        if (step == 0)
+            step = 1;
 
         SelectedAmount = minAmount;
         return;
