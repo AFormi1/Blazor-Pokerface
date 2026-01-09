@@ -210,6 +210,10 @@
         {
             if (Me == null || msgBox == null) return;
 
+            RebuildPlayersByChair();
+            MapPlayerCards();
+            MapCommunityCards();
+
             if (lostPlayer == Me)
             {
                 await msgBox.ShowAsync("### You Lost! ###",
@@ -220,10 +224,7 @@
 
             await msgBox.ShowAsync("### Player Lost! ###",
                 $"Der Spieler {lostPlayer.Name} hatte zu wenig Geld und musste das Spiel verlassen!");
-
-            RebuildPlayersByChair();
-            MapPlayerCards();
-            MapCommunityCards();
+                        
             StateHasChanged();
         });
     }

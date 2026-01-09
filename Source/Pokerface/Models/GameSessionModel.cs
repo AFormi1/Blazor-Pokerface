@@ -483,9 +483,6 @@ namespace Pokerface.Models
             if (CurrentGame == null || CurrentGame.Players == null)
                 return;
 
-            // Notify UI immediately
-            OnSessionChanged?.Invoke();
-
             // Ensure players can cover blinds for next game
             var bustedPlayers = CurrentGame.Players.Where(p => p.RemainingStack < CurrentGame.SmallBlind).ToList();
 
@@ -495,17 +492,18 @@ namespace Pokerface.Models
             foreach (var busted in bustedPlayers)
             {
                 lostTasks.Add(async () =>
-                {
+                {           
                     await Task.Delay(2000);
+                    busted.Card1 = null;
+                    busted.Card2 = null;
                     OnPlayerLost?.Invoke(busted);
-                    await Task.Delay(2000);
+
+                    await Task.Delay(2000);   
                     await RemovePlayer(busted);
                 });
             }
 
-
             Console.WriteLine("Round finished!");
-
 
             // Now execute all tasks in parallel, but do not await them
             _ = Task.WhenAll(lostTasks.Select(f => f()));
