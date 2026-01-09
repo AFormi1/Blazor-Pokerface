@@ -486,19 +486,21 @@ namespace Pokerface.Models
             // Ensure players can cover blinds for next game
             var bustedPlayers = CurrentGame.Players.Where(p => p.RemainingStack < CurrentGame.SmallBlind).ToList();
 
+            bool gameOver = bustedPlayers.Any();
+
             // Prepare all busted player tasks but do not start yet
             List<Func<Task>> lostTasks = new();
 
             foreach (var busted in bustedPlayers)
             {
                 lostTasks.Add(async () =>
-                {           
+                {
                     await Task.Delay(2000);
                     busted.Card1 = null;
                     busted.Card2 = null;
                     OnPlayerLost?.Invoke(busted);
 
-                    await Task.Delay(2000);   
+                    await Task.Delay(2000);
                     await RemovePlayer(busted);
                 });
             }
@@ -507,6 +509,10 @@ namespace Pokerface.Models
 
             // Now execute all tasks in parallel, but do not await them
             _ = Task.WhenAll(lostTasks.Select(f => f()));
+
+            if (!gameOver)
+                OnSessionChanged?.Invoke();
+
         }
 
         private int GetFirstActivePlayerAfterDealer()
