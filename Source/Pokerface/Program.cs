@@ -29,7 +29,6 @@ builder.Services.AddSingleton<GameSessionService>();
 
 var app = builder.Build();
 
-
 // Initialize databases during startup and create the default database if not exists (playground)
 using (var scope = app.Services.CreateScope())
 {
