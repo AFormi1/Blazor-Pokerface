@@ -5,13 +5,17 @@ namespace Pokerface.Services.DB
 {
     public class DbTableService
     {
-        public BaseDataBase DataBase { get; set; } = new BaseDataBase("Table.db");
+        public BaseDataBase DataBase { get; }
+
+        public DbTableService(BaseDataBase dataBase)
+        {
+            DataBase = dataBase ?? throw new ArgumentNullException(nameof(dataBase));
+        }
 
         public async Task Init()
         {
             await DataBase.Init<TableModel>();
 
-            //if this task runs, we can be shure that we have no gamesessions and no current users, so reset the values
             var tables = await GetItemsAsync();
             foreach (var table in tables)
             {
