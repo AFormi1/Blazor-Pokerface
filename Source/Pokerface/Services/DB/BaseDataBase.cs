@@ -5,42 +5,54 @@ namespace Pokerface.Services.DB
     public class BaseDataBase
     {
         public string DatabaseFilename { get; private set; }
+        public SQLiteAsyncConnection Database { get; private set; }
+        public string DBPath { get; private set; }
 
-        public SQLiteAsyncConnection? Database { get; private set; }
-        public string DBPath { get; set; } = Path.Combine(AppContext.BaseDirectory, "DB");
-
-        public BaseDataBase(string dbName)
+        public BaseDataBase(string dbName, string dbPath)
         {
-            if (string.IsNullOrEmpty(dbName))
-                throw new ArgumentNullException("dbName must be given for BaseDataBase!");
+            if (string.IsNullOrWhiteSpace(dbName))
+                throw new ArgumentNullException(nameof(dbName));
+
+            if (string.IsNullOrWhiteSpace(dbPath))
+                throw new ArgumentNullException(nameof(dbPath));
 
             DatabaseFilename = dbName;
+            DBPath = Path.Combine(dbPath, "DB");
 
+            Directory.CreateDirectory(DBPath);
+
+            Database = new SQLiteAsyncConnection(
+                Path.Combine(DBPath, DatabaseFilename),
+                SQLiteOpenFlags.ReadWrite |
+                SQLiteOpenFlags.Create |
+                SQLiteOpenFlags.SharedCache);
         }
+
+        public Task Init<T>() where T : new()
+            => Database.CreateTableAsync<T>();
 
 
         // Generalized SQLite connection
-        public SQLiteAsyncConnection CreateDatabaseConnection()
+        private SQLiteAsyncConnection CreateDatabaseConnection()
         {
-            var dbPath = Path.Combine(DBPath, DatabaseFilename);
-            return new SQLiteAsyncConnection(dbPath, SQLiteOpenFlags.ReadWrite | SQLiteOpenFlags.Create | SQLiteOpenFlags.SharedCache);
+            if (string.IsNullOrWhiteSpace(DBPath))
+                throw new ArgumentNullException(nameof(DBPath));
+
+            var fullPath = Path.Combine(DBPath, DatabaseFilename);
+            return new SQLiteAsyncConnection(
+                fullPath,
+                SQLiteOpenFlags.ReadWrite |
+                SQLiteOpenFlags.Create |
+                SQLiteOpenFlags.SharedCache);
         }
 
-        // Generalized Init method for any type T
-        public async Task Init<T>() where T : new()
-        {
-            // Ensure the directory exists
-            if (!Directory.Exists(DBPath))
-                Directory.CreateDirectory(DBPath);
-
-            // Create the table asynchronously
-            Database = new SQLiteAsyncConnection(Path.Combine(DBPath, DatabaseFilename));
-            await Database.CreateTableAsync<T>();
-        }
-
+       
         // Generalized Delete method for deleting the specific database file for the type T
         public async Task DeleteDBFiles<T>()
         {
+            if (string.IsNullOrWhiteSpace(DBPath))
+                throw new ArgumentNullException(nameof(DBPath));
+
             var dbPath = Path.Combine(DBPath, DatabaseFilename);
 
             if (File.Exists(dbPath))
