@@ -1,13 +1,12 @@
 ﻿.form-row {
     display: flex;
     align-items: center;
-    margin-bottom: 1rem;
-    gap: 1rem;
+    gap: 0.5rem;
 }
 
 /* Labels: same width, no wrapping */
 .form-label {
-    min-width: 160px; /* width defined by longest label */
+    width: 9rem;
     white-space: nowrap;
     margin-bottom: 0;
     text-align: left;
@@ -23,9 +22,13 @@
         margin-top: 0.25rem;
     }
 
-/* Button alignment */
 .button-row {
     display: flex;
     justify-content: center;
     gap: 1rem;
 }
+
+    .button-row > * {
+        flex: 1 1 0;
+    }
+

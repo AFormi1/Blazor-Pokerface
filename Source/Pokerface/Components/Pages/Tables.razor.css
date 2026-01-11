@@ -2,7 +2,7 @@
 .page-wrapper {
     display: flex;
     flex-direction: column;
-    height: calc(100vh - 4rem);
+    height: calc(100vh - 37px);
     margin: 1rem;
     background-color: rgba(0,0,0,0.85);
     border: 2px solid var(--bs-primary);
@@ -15,21 +15,44 @@
 }
 
 
-/* Buttons side by side, smaller size */
 .button-row {
     display: flex;
-    justify-content: center; /* center all buttons horizontally */
-    gap: 1rem; /* spacing between buttons */
+    justify-content: center;
+    gap: 1rem;
     margin: 1rem 0 2rem 0;
+    flex-wrap: wrap;
 }
+
     .button-row .btn {
-        width: 200px; /* fixed width for all buttons */
+        width: 12rem;
     }
+
+.button-table {
+    min-width: 5.5rem;
+}
+
+@media (max-width: 576px) {
+    .page-wrapper {
+        margin: 0.0rem;
+        padding: 0.5rem;
+        border-radius: 1rem;
+    }
+}
+
+@media (max-width: 576px) and (orientation: portrait) {
+    .hide-mobile {
+        display: none !important;
+    }
+}
+
+
 
 
 .table-container {
-    flex: 1; /* take remaining height */
-    overflow-y: auto; /* scroll if table is too tall */
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
 }
 
 /* Make table header sticky */

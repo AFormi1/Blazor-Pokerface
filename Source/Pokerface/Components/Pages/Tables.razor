@@ -28,11 +28,11 @@
                     <tr>
                         <th style="width: 20%;">Tischname</th>
                         <th style="width: 5%;" class="text-center">Spieler</th>
-                        <th style="width: 5%;" class="text-center">Pflichteinstz</th>
-                        <th style="width: 5%;" class="text-center">SmallBlind</th>
-                        <th style="width: 5%;" class="text-center">BigBlind</th>
-                        <th style="width: 5%;" class="text-center">MinBet</th>
-                        <th style="width: 5%;" class="text-center">MaxBet</th>
+                        <th style="width: 5%;" class="hide-mobile text-center">Pflichteinstz</th>
+                        <th style="width: 5%;" class="hide-mobile text-center">SmallBlind</th>
+                        <th style="width: 5%;" class="hide-mobile text-center">BigBlind</th>
+                        <th style="width: 5%;" class="hide-mobile text-center">MinBet</th>
+                        <th style="width: 5%;" class="hide-mobile text-center">MaxBet</th>
                         <th style="width: 5%;" class="text-center">Bearbeiten</th>
                         <th style="width: 5%;" class="text-center">Beitreten</th>
                     </tr>
@@ -43,21 +43,19 @@
                         <tr>
                             <td>@table.Name</td>
                             <td class="text-center">@table.CurrentPlayers / @TableModel.MaxPlayers</td>
-                            <td class="text-center">@table.Ante</td>
-                            <td class="text-center">@table.SmallBlind</td>
-                            <td class="text-center">@table.BigBlind</td>
-                            <td class="text-center">@table.MinBet</td>
-                            <td class="text-center">@table.MaxBet</td>                            
+                            <td class="hide-mobile text-center">@table.Ante</td>
+                            <td class="hide-mobile text-center">@table.SmallBlind</td>
+                            <td class="hide-mobile text-center">@table.BigBlind</td>
+                            <td class="hide-mobile text-center">@table.MinBet</td>
+                            <td class="hide-mobile text-center">@table.MaxBet</td>
                             <td class="text-center">
                                 <a href="@($"/editable/{table.Id}")" 
-                                   class="btn btn-sm @(table.CurrentPlayers == 0 ? "btn-primary" : "btn-secondary") align-content-center"
-                                   style="width:90px;">
+                                   class="button-table btn btn-sm @(table.CurrentPlayers == 0 ? "btn-primary" : "btn-secondary") align-content-center">
                                 Bearbeiten
                             </a>
                             </td>
                             <td class="text-center">
-                                <button class="btn btn-sm @(table.CurrentPlayers < TableModel.MaxPlayers ? "btn-primary" : "btn-secondary")"
-                                        style="width:90px;"
+                                <button class="button-table btn btn-sm @(table.CurrentPlayers < TableModel.MaxPlayers ? "btn-primary" : "btn-secondary")"
                                         @onclick="() => JoinTable(table)">
                                     Beitreten
                                 </button>
