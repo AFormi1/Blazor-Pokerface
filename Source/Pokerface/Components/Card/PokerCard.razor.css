@@ -1,5 +1,5 @@
 ﻿.poker-card {
-    width: 6rem;
+    width: min(6vw, 8vh);
     aspect-ratio: 364 / 544;
     background-size: contain;
     background-repeat: no-repeat;
