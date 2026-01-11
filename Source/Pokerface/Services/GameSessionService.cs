@@ -73,8 +73,7 @@ namespace Pokerface.Services
         {
             await session.RemovePlayer(player);
 
-            if (session.CurrentGame != null)
-                CurrentTableUsersChanged?.Invoke(this, session.CurrentGame);
+            CurrentTableUsersChanged?.Invoke(this, session.CurrentGame);
 
             // If no players left, remove the session
             if (session.PlayersPending?.Count == 0)
