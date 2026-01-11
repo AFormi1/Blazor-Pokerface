@@ -28,6 +28,7 @@ namespace Pokerface.Models
 
         [Range(0, int.MaxValue, ErrorMessage = "Muss >= 0 sein")]
         public int MaxBet { get; set; } = 10000;
+        public int CurrentPlayers { get; set; }
 
         #endregion
 
@@ -43,8 +44,7 @@ namespace Pokerface.Models
         public int CurrentPlayer { get; set; }
         [Ignore]
         public BettingRound CurrentRound { get; set; }
-        [Ignore]
-        public int CurrentPlayers { get; set;  }
+
         [Ignore]
         public int CurrentBet { get; set; }
         [Ignore]
