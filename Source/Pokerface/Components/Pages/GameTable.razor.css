@@ -59,8 +59,8 @@
 }
 
     .table-actions-overlay button {
-        width: clamp(8rem, 12vw, 10rem);
-        padding: 0.6em 1em;
+        width: clamp(8rem, 10vw, 10rem);        
+        padding: 0.2em;
         display: flex;
         align-items: center;
         justify-content: center;
