@@ -7,57 +7,84 @@
 <PageTitle>Game Table</PageTitle>
 
 <div class="gametable-wrapper">
+
     <div class="poker-table">
 
-        <!-- Community cards -->
-        <div class="community-cards">
-            @for (int i = 0; i < CommunityCards.Count; i++)
-            {
-                <div class="card-spot"><PokerCard Model="CommunityCards[i]" /></div>
-            }
-        </div>
+        @if (Session != null && Session.CurrentGame != null)
+        {
+            <div style="display:flex; flex-direction:column; width:100vw; height:100vh; padding-top:3.5%; padding-bottom:3.5%;">
 
-        <div class="players-top">
-            @for (int chair = 1; chair <= 3; chair++)
-            {
-                <PlayerContainer PlayerChair="chair"
-                                 Card1="@GetPlayerCard(chair).c1"
-                                 Card2="@GetPlayerCard(chair).c2"
-                                 Me="@Me"
-                                 PlayersByChair="@PlayersByChair" />
-            }
-        </div>
+                <!-- Grid container -->
+                <div style="flex:1 1 auto; width:100%; height:100%; display:grid;
+                            grid-template-rows:auto 1fr auto 1fr auto;
+                            grid-template-columns:repeat(1fr, 8);">
 
-        <div class="players-bottom">
-            @for (int chair = 5; chair <= 7; chair++)
-            {
-                <PlayerContainer PlayerChair="chair"
-                                 Card1="@GetPlayerCard(chair).c1"
-                                 Card2="@GetPlayerCard(chair).c2"
-                                 Me="@Me"
-                                 PlayersByChair="@PlayersByChair" />
-            }
-        </div>
+                    <!-- Row 1 -->
+                    <div></div>
+                    <div>
+                        <PlayerContainer PlayerChair="1" Card1="@GetPlayerCard(1).c1" Card2="@GetPlayerCard(1).c2" Me="@Me" PlayersByChair="@PlayersByChair" />
+                    </div>
+                    <div></div>
+                    <div style="grid-column: 4 / 6; ">
+                        <PlayerContainer PlayerChair="2" Card1="@GetPlayerCard(2).c1" Card2="@GetPlayerCard(2).c2" Me="@Me" PlayersByChair="@PlayersByChair" />
+                    </div>
+                    <div></div>
+                    <div>
+                        <PlayerContainer PlayerChair="3" Card1="@GetPlayerCard(3).c1" Card2="@GetPlayerCard(3).c2" Me="@Me" PlayersByChair="@PlayersByChair" />
+                    </div>
+                    <div></div>
 
-        <div class="player-pair-horizontal-right">
-            <PlayerContainer PlayerChair="4"
-                             Card1="@GetPlayerCard(4).c1"
-                             Card2="@GetPlayerCard(4).c2"
-                             Me="@Me"
-                             PlayersByChair="@PlayersByChair" />
-        </div>
-        <div class="player-pair-horizontal-left">
-            <PlayerContainer PlayerChair="8"
-                             Card1="@GetPlayerCard(8).c1"
-                             Card2="@GetPlayerCard(8).c2"
-                             Me="@Me"
-                             PlayersByChair="@PlayersByChair" />
-        </div>
+                    <!-- Row 2 (stretch) -->             
+                    <div class="action-mask-label" style="grid-column: 1 / 9; display:flex; justify-content:center; align-items:center;">
+                        In Pot: @Session.CurrentGame.Pot
+                    </div>
 
-    </div>
+                    <!-- Row 3 -->
+                    <div style="rotate: -90deg;">
+                        <PlayerContainer PlayerChair="8" Card1="@GetPlayerCard(8).c1" Card2="@GetPlayerCard(8).c2" Me="@Me" PlayersByChair="@PlayersByChair" />
+                    </div>
+                    <div style="grid-column:2 / 8; display:flex; justify-content:center;">
+                        <!-- Community cards -->
+                        <div class="community-cards">
+                            @for (int i = 0; i < CommunityCards.Count; i++)
+                            {
+                                <div class="card-spot"><PokerCard Model="CommunityCards[i]" /></div>
+                            }
+                        </div>
+                    </div>
+                    <div style="rotate: 90deg;">
+                        <PlayerContainer PlayerChair="4" Card1="@GetPlayerCard(4).c1" Card2="@GetPlayerCard(4).c2" Me="@Me" PlayersByChair="@PlayersByChair" />
+                    </div>
 
-    @if (Session != null && Session.CurrentGame != null)
-    {
+                    <!-- row 4 stretch-->
+                    <div class="action-mask-label" style="grid-column: 1 / 9; display:flex; justify-content:center; align-items:center;">
+                        @foreach (var player in Session.CurrentGame.TheWinners ?? Enumerable.Empty<PlayerModel>())
+                        {
+                            <div class="action-title">@player.Name hat mit @player.Result gewonnen!</div>
+                        }
+                    </div>
+
+                    <!-- Row 5 -->
+                    <div></div>
+                    <div>
+                        <PlayerContainer PlayerChair="7" Card1="@GetPlayerCard(7).c1" Card2="@GetPlayerCard(7).c2" Me="@Me" PlayersByChair="@PlayersByChair" />
+                    </div>
+                    <div></div>
+                    <div style="grid-column: 4 / 6; ">
+                        <PlayerContainer PlayerChair="6" Card1="@GetPlayerCard(6).c1" Card2="@GetPlayerCard(6).c2" Me="@Me" PlayersByChair="@PlayersByChair" />
+                    </div>
+                    <div></div>
+                    <div>
+                        <PlayerContainer PlayerChair="5" Card1="@GetPlayerCard(5).c1" Card2="@GetPlayerCard(5).c2" Me="@Me" PlayersByChair="@PlayersByChair" />
+                    </div>
+                    <div></div>
+
+                </div>
+
+            </div>
+        }
+
+
         <div class="table-actions-overlay">
             <button class="btn btn-primary"
                     @onclick="StartGame"
@@ -66,19 +93,7 @@
             </button>
             <button class="btn btn-primary" @onclick="(() => ExitGame(true))">Verlassen</button>
         </div>
-    }
-
-
-    @if (Session != null && Session.CurrentGame != null)
-    {
-        <div class="action-mask-game">
-            <div class="action-mask-label">In Pot: @Session.CurrentGame.Pot</div>
-            @foreach (var player in Session.CurrentGame.TheWinners ?? Enumerable.Empty<PlayerModel>())
-            {
-                <div class="action-title">@player.Name hat mit @player.Result gewonnen!</div>
-            }
-        </div>
-
+               
         <div class="action-mask-player">
             <div class="action-panel @(Me?.IsNext == true ? "action-panel--active" : "action-panel")">
                 @if (Session.CurrentGame.RoundFinished)
@@ -129,7 +144,7 @@
                 }
             </div>
         </div>
-    }
+    </div>
 </div>
 
 <MessageBox @ref="msgBox" />
@@ -150,19 +165,19 @@
     private List<PokerCardModel> CommunityCards = new();
 
     private bool NewGameDisabled =>
-        Session?.PlayersPending == null || Session.CurrentGame == null ||
-        !(Session.PlayersPending.Count >= 2 && !Session.CurrentGame.RoundLocked);
+    Session?.PlayersPending == null || Session.CurrentGame == null ||
+    !(Session.PlayersPending.Count >= 2 && !Session.CurrentGame.RoundLocked);
 
     private bool IsSliderVisible =>
-        Session?.CurrentGame != null &&
-        Session?.AvailableActions != null &&
-        Me != null &&
-        Me.IsNext &&
-        Session.CurrentGame.CurrentRound != BettingRound.Ante &&
-        Session.CurrentGame.CurrentRound != BettingRound.Showdown &&
-        Session.AvailableActions.Any(a =>
-            a.RequiredAmount > 0
-        );
+    Session?.CurrentGame != null &&
+    Session?.AvailableActions != null &&
+    Me != null &&
+    Me.IsNext &&
+    Session.CurrentGame.CurrentRound != BettingRound.Ante &&
+    Session.CurrentGame.CurrentRound != BettingRound.Showdown &&
+    Session.AvailableActions.Any(a =>
+    a.RequiredAmount > 0
+    );
 
     private int minAmount;
     private int maxAmount;
@@ -180,12 +195,12 @@
 
         // Initialize lists
         PlayerCards = Enumerable.Range(0, 8)
-            .Select(_ => (new PokerCardModel(), new PokerCardModel()))
-            .ToList();
+        .Select(_ => (new PokerCardModel(), new PokerCardModel()))
+        .ToList();
 
         CommunityCards = Enumerable.Range(0, 5)
-            .Select(_ => new PokerCardModel())
-            .ToList();
+        .Select(_ => new PokerCardModel())
+        .ToList();
 
         RebuildPlayersByChair();
         MapPlayerCards();
@@ -217,14 +232,14 @@
             if (lostPlayer == Me)
             {
                 await msgBox.ShowAsync("### You Lost! ###",
-                    "Da du zu wenig Geld hast, musst du das Spiel verlassen.\r\nDu kannst gerne nochmal beitreten!");
+            "Da du zu wenig Geld hast, musst du das Spiel verlassen.\r\nDu kannst gerne nochmal beitreten!");
                 await ExitGame(false);
                 return;
             }
 
             await msgBox.ShowAsync("### Player Lost! ###",
-                $"Der Spieler {lostPlayer.Name} hatte zu wenig Geld und musste das Spiel verlassen!");
-                        
+        $"Der Spieler {lostPlayer.Name} hatte zu wenig Geld und musste das Spiel verlassen!");
+
             StateHasChanged();
         });
     }
@@ -238,8 +253,8 @@
             return;
 
         var betActions = Session.AvailableActions
-            .Where(a => a.RequiredAmount > 0)
-            .ToList();
+        .Where(a => a.RequiredAmount > 0)
+        .ToList();
 
         if (!betActions.Any())
         {
@@ -341,8 +356,8 @@
         await Session.StartGame();
 
         PlayersByChair = Enumerable.Range(1, 8)
-            .ToDictionary(chair => chair,
-                chair => Session.CurrentGame.Players.FirstOrDefault(p => p.Chair == chair));
+        .ToDictionary(chair => chair,
+        chair => Session.CurrentGame.Players.FirstOrDefault(p => p.Chair == chair));
     }
 
     private async Task ExitGame(bool deletePlayer)
@@ -368,5 +383,5 @@
 
 
     private (PokerCardModel c1, PokerCardModel c2) GetPlayerCard(int chair) =>
-        PlayerCards[chair - 1]; // chairs 1–8 map to index 0–7
+    PlayerCards[chair - 1]; // chairs 1–8 map to index 0–7
 }

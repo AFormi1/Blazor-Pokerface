@@ -18,8 +18,8 @@
 
 .poker-table {
     position: relative;
-    height: 95%;
-    aspect-ratio: 16 / 9;
+    height: 100%;
+    width: 100%;
     background-color: #1f7a1f;
     border-radius: 9999px;
     border: clamp(0.4rem, 1.2vw, 1rem) solid #0b3d0b;
@@ -42,31 +42,6 @@
     display: flex;
     gap: clamp(0.5rem, 1.5vw, 1rem);
 }
-
-/* =========================
-   PLAYER ZONES
-   ========================= */
-
-.players-top,
-.players-bottom {
-    position: absolute;
-    left: 50%;
-    transform: translateX(-50%);
-    width: clamp(55%, 60%, 70%);
-    height: 25%;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.players-top {
-    top: 5%;
-}
-
-.players-bottom {
-    bottom: 5%;
-}
-
 
 
 /* =========================
