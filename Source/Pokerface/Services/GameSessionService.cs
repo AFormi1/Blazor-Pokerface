@@ -58,10 +58,12 @@ namespace Pokerface.Services
             int freeChair = Enumerable
                 .Range(1, TableModel.MaxPlayers)
                 .Except(session.PlayersPending.Select(p => p.Chair))
-                .FirstOrDefault(-1);
+                .FirstOrDefault();
 
             PlayerModel player = new PlayerModel(freeChair, playerName);
             await session.AddPlayer(player);
+
+            await _tableService.SaveItemAsync(session.CurrentGame);
 
             CurrentTableUsersChanged?.Invoke(this, session.CurrentGame);
 
@@ -72,6 +74,8 @@ namespace Pokerface.Services
         public async Task RemovePlayerFromSessionAsync(GameSessionModel session, PlayerModel player)
         {
             await session.RemovePlayer(player);
+
+            await _tableService.SaveItemAsync(session.CurrentGame);
 
             CurrentTableUsersChanged?.Invoke(this, session.CurrentGame);
 
@@ -85,7 +89,6 @@ namespace Pokerface.Services
             if (session == null || session.CurrentGame == null)
                 return;
 
-            session.CurrentGame.CurrentPlayers = 0;
             CurrentTableUsersChanged?.Invoke(this, session.CurrentGame);
 
             GameSessions.Remove(session);
@@ -94,5 +97,6 @@ namespace Pokerface.Services
 
             session = null;
         }
+
     }
 }
