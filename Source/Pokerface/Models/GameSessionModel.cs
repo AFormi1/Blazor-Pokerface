@@ -39,8 +39,7 @@ namespace Pokerface.Models
 
             CurrentGame.CurrentPlayers = PlayersPending.Count;
 
-            //Update the TableModel in DB
-            await _dbTableService.SaveItemAsync(CurrentGame);
+            // Update DB will be done by the GameSessionService
 
             OnSessionChanged?.Invoke();
 
@@ -62,8 +61,7 @@ namespace Pokerface.Models
             PlayersPending.Remove(player);
             CurrentGame.CurrentPlayers = PlayersPending.Count();
 
-            // Update DB
-            await _dbTableService.SaveItemAsync(CurrentGame);
+            // Update DB will be done by the GameSessionService
 
             // If everyone left, close the session
             if (PlayersPending.All(p => p.IsSittingOut))
@@ -682,8 +680,6 @@ namespace Pokerface.Models
                 p.IsNext = false;
             }
 
-
-
             CurrentGame.RoundLocked = false;
             CurrentGame.RoundFinished = true;
             AvailableActions.Clear();
@@ -722,12 +718,6 @@ namespace Pokerface.Models
 
         public async ValueTask DisposeAsync()
         {
-            if (_dbTableService == null || PlayersPending == null || AvailableActions == null)
-                throw new ArgumentNullException("null objects found");
-
-            if (_dbTableService != null)
-                await _dbTableService.SaveItemAsync(CurrentGame);
-
             PlayersPending = null;
             CardSet = null;
             CommunityCards = null;

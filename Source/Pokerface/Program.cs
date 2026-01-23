@@ -22,8 +22,6 @@ builder.Services.AddSingleton(sp =>
 });
 
 builder.Services.AddSingleton<DbTableService>();
-
-
 builder.Services.AddSingleton<TableService>();
 builder.Services.AddSingleton<GameSessionService>();
 
