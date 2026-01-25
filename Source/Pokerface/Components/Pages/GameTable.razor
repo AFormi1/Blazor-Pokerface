@@ -169,8 +169,8 @@
     private List<PokerCardModel> CommunityCards = new();
 
     private bool NewGameDisabled =>
-    Session?.PlayersPending == null || Session.CurrentGame == null ||
-    !(Session.PlayersPending.Count >= 2 && !Session.CurrentGame.RoundLocked);
+    Session?.CurrentGame.PlayersPending == null || Session.CurrentGame == null ||
+    !(Session.CurrentGame.PlayersPending.Count >= 2 && !Session.CurrentGame.RoundLocked);
 
     private bool IsSliderVisible =>
     Session?.CurrentGame != null &&
@@ -320,14 +320,14 @@
 
     private void RebuildPlayersByChair()
     {
-        if (Session == null || Session.PlayersPending == null)
+        if (Session == null || Session.CurrentGame.PlayersPending == null)
             return;
 
         PlayersByChair = new Dictionary<int, PlayerModel?>();
 
         for (int chair = 0; chair < TableModel.MaxPlayers; chair++)
         {
-            PlayersByChair[chair] = Session.PlayersPending.Where(x => x.Chair == chair).FirstOrDefault();
+            PlayersByChair[chair] = Session.CurrentGame.PlayersPending.Where(x => x.Chair == chair).FirstOrDefault();
         }
     }
 

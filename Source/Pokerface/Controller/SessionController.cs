@@ -22,19 +22,22 @@ namespace Pokerface.Controller
             if (request == null)
                 return BadRequest("Request body missing");
 
-            var session = _gameSessionService.GetGameSessionById(request.SessionId);
+            GameSessionModel? session = _gameSessionService.GetGameSessionById(request.SessionId);
             if (session == null)
                 return Ok();
 
-            var player = session.PlayersPending?
+            var player = session.CurrentGame.PlayersPending?
                 .FirstOrDefault(p => p.Id == request.PlayerId);
 
             if (player == null)
                 return Ok();
 
-            await _gameSessionService.RemovePlayerFromSessionAsync(session, player);
+            await session.LeavePlayerGracefully(player);
+
+            _gameSessionService.CurrentTableUsersChanged?.Invoke(this, session.CurrentGame);
 
             return Ok();
         }
+
     }
 }

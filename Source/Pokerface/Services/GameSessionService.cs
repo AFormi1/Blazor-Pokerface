@@ -31,32 +31,31 @@ namespace Pokerface.Services
             if (session == null)
             {
                 // No session exists --> create a new one
-                session = new GameSessionModel(_tableService, table);
-    
+                session = new GameSessionModel(_tableService, table);    
                 GameSessions.Add(session);
             }
             else
             {
                 // Session exists --> check if table is full
-                if (session.CurrentGame?.CurrentPlayers >= TableModel.MaxPlayers)
+                if (session.CurrentGame?.Players.Count() >= TableModel.MaxPlayers)
                     return null; // table full
 
 
                 // Check if player already exists in the session
-                if (session.PlayersPending != null)
+                if (session.CurrentGame?.PlayersPending != null)
                 {
-                    if (session.PlayersPending.Any(p => p.Name.Equals(playerName, StringComparison.OrdinalIgnoreCase)))
+                    if (session.CurrentGame.PlayersPending.Any(p => p.Name.Equals(playerName, StringComparison.OrdinalIgnoreCase)))
                         return null; // player already joined
                 }
             }
 
             // Add the player
-            if (session.CurrentGame == null || session.PlayersPending == null)
+            if (session.CurrentGame == null || session.CurrentGame.PlayersPending == null)
                 throw new ArgumentNullException("objects are null");
 
             int freeChair = Enumerable
                 .Range(1, TableModel.MaxPlayers)
-                .Except(session.PlayersPending.Select(p => p.Chair))
+                .Except(session.CurrentGame.PlayersPending.Select(p => p.Chair))
                 .FirstOrDefault();
 
             PlayerModel player = new PlayerModel(freeChair, playerName);
@@ -79,7 +78,7 @@ namespace Pokerface.Services
             CurrentTableUsersChanged?.Invoke(this, session.CurrentGame);
 
             // If no players left, remove the session
-            if (session.PlayersPending?.Count == 0)
+            if (session.CurrentGame.PlayersPending?.Count == 0)
                 await RemoveSession(session);
         }
 

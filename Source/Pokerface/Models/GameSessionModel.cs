@@ -14,7 +14,6 @@ namespace Pokerface.Models
         public event Action? OnSessionChanged;
 
         public TableModel CurrentGame { get; set; }
-        public List<PlayerModel>? PlayersPending { get; set; } = new List<PlayerModel>();
         public List<Card>? CardSet { get; set; }
         public List<Card>? CommunityCards { get; set; }
         public List<ActionOption>? AvailableActions { get; private set; } = new();
@@ -27,17 +26,15 @@ namespace Pokerface.Models
 
         public PlayerModel? GetPlayerById(int player)
         {
-            return PlayersPending?.Where(p => p.Id == player).FirstOrDefault();
+            return CurrentGame.PlayersPending?.Where(p => p.Id == player).FirstOrDefault();
         }
 
         public async Task AddPlayer(PlayerModel player)
         {
-            if (_dbTableService == null || PlayersPending == null)
+            if (_dbTableService == null || CurrentGame.PlayersPending == null)
                 throw new ArgumentNullException("null objects found in AddPlayer");
 
-            PlayersPending.Add(player);
-
-            CurrentGame.CurrentPlayers = PlayersPending.Count;
+            CurrentGame.PlayersPending.Add(player);
 
             // Update DB will be done by the GameSessionService
 
@@ -47,7 +44,7 @@ namespace Pokerface.Models
 
         public async Task RemovePlayer(PlayerModel player)
         {
-            if (_dbTableService == null || PlayersPending == null)
+            if (_dbTableService == null || CurrentGame.PlayersPending == null)
                 throw new ArgumentNullException("null objects found in RemovePlayer");
 
             // Mark as folded / sitting out
@@ -58,13 +55,12 @@ namespace Pokerface.Models
             if (player.IsNext)
                 await OnPlayerActionComitted(player, new PlayerAction { ActionType = EnumPlayerAction.Fold });
 
-            PlayersPending.Remove(player);
-            CurrentGame.CurrentPlayers = PlayersPending.Count();
+            CurrentGame.PlayersPending.Remove(player);
 
             // Update DB will be done by the GameSessionService
 
             // If everyone left, close the session
-            if (PlayersPending.All(p => p.IsSittingOut))
+            if (CurrentGame.PlayersPending.All(p => p.IsSittingOut))
             {
                 CurrentGame.RoundLocked = false;
                 CurrentGame.RoundFinished = false;
@@ -73,9 +69,49 @@ namespace Pokerface.Models
             OnSessionChanged?.Invoke();
         }
 
+        public async Task LeavePlayerGracefully(PlayerModel player)
+        {
+            if (CurrentGame == null) return;
+
+            if (!HasActiveGame())
+            {
+                // No active game → safe to remove
+                await RemovePlayer(player);
+            }
+            else
+            {
+                // Active game → mark as leaving
+                player.HasFolded = true;
+                player.IsSittingOut = true;
+                player.IsLeaving = true;
+
+                // If it’s their turn, auto-fold immediately
+                if (player.IsNext)
+                {
+                    await OnPlayerActionComitted(player, new PlayerAction { ActionType = EnumPlayerAction.Fold });
+                }
+
+                OnSessionChanged?.Invoke();
+            }
+        }
+
+        private async Task CleanupLeavingPlayers()
+        {
+            if (_dbTableService == null || CurrentGame.PlayersPending == null)
+                return;
+
+            var leavingPlayers = CurrentGame.PlayersPending.Where(p => p.IsLeaving).ToList();
+            foreach (var player in leavingPlayers)
+            {
+                await RemovePlayer(player);
+            }
+        }
+
+
+
         public async Task StartGame()
         {
-            if (_dbTableService == null || PlayersPending == null)
+            if (_dbTableService == null || CurrentGame.PlayersPending == null)
                 throw new ArgumentNullException("null objects found");
 
             // Reset the deck and community cards
@@ -90,7 +126,7 @@ namespace Pokerface.Models
 
             Console.WriteLine("Starting New Round ...");
 
-            CurrentGame.RestartRound(PlayersPending, lastDealerIndex);
+            CurrentGame.RestartRound(CurrentGame.PlayersPending, lastDealerIndex);
 
             AvailableActions = new();
 
@@ -121,7 +157,7 @@ namespace Pokerface.Models
 
         private async Task OnPlayerActionComitted(PlayerModel player, PlayerAction action)
         {
-            if (_dbTableService == null || PlayersPending == null)
+            if (_dbTableService == null || CurrentGame.PlayersPending == null)
                 throw new ArgumentNullException("null objects found");
 
             if (!player.IsNext)
@@ -304,7 +340,7 @@ namespace Pokerface.Models
 
         public void UpdateAvailableActions(PlayerModel player)
         {
-            if (_dbTableService == null || PlayersPending == null || AvailableActions == null)
+            if (_dbTableService == null || CurrentGame.PlayersPending == null || AvailableActions == null)
                 throw new ArgumentNullException("null objects found");
 
             AvailableActions.Clear();
@@ -421,7 +457,7 @@ namespace Pokerface.Models
 
         private async Task AdvanceRound()
         {
-            if (_dbTableService == null || PlayersPending == null || AvailableActions == null)
+            if (_dbTableService == null || CurrentGame.PlayersPending == null || AvailableActions == null)
                 throw new ArgumentNullException("null objects found");
 
             // Clear per-round flags
@@ -482,7 +518,9 @@ namespace Pokerface.Models
                 return;
 
             // Ensure players can cover blinds for next game
-            var bustedPlayers = CurrentGame.Players.Where(p => p.RemainingStack < CurrentGame.SmallBlind).ToList();
+            var bustedPlayers = CurrentGame.Players
+                .Where(p => p.RemainingStack < CurrentGame.SmallBlind)
+                .ToList();
 
             bool gameOver = bustedPlayers.Any();
 
@@ -505,17 +543,20 @@ namespace Pokerface.Models
 
             Console.WriteLine("Round finished!");
 
-            // Now execute all tasks in parallel, but do not await them
+            // Execute all tasks in parallel, but do not await them
             _ = Task.WhenAll(lostTasks.Select(f => f()));
 
-            if (!gameOver)
-                OnSessionChanged?.Invoke();
+            // --- Here: remove players who requested to leave ---
+            await CleanupLeavingPlayers();
 
+            // Notify UI
+            OnSessionChanged?.Invoke();
         }
+
 
         private int GetFirstActivePlayerAfterDealer()
         {
-            if (_dbTableService == null || PlayersPending == null || AvailableActions == null)
+            if (_dbTableService == null || CurrentGame.PlayersPending == null || AvailableActions == null)
                 throw new ArgumentNullException("null objects found");
 
             if (CurrentGame.Players.Count < 2)
@@ -562,7 +603,7 @@ namespace Pokerface.Models
 
         private async Task CalculateWinner()
         {
-            if (_dbTableService == null || PlayersPending == null || AvailableActions == null)
+            if (_dbTableService == null || CurrentGame.PlayersPending == null || AvailableActions == null)
                 throw new ArgumentNullException("null objects found");
 
             if (CurrentGame.RoundFinished)
@@ -717,17 +758,20 @@ namespace Pokerface.Models
 
         public bool HasActiveGame()
         {
-            if (CurrentGame == null || PlayersPending == null)
+            if (CurrentGame == null || CurrentGame.PlayersPending == null || CurrentGame.Players == null)
+                return false;
+
+            if (!CurrentGame.Players.Any())
                 return false;
 
             // At least one player still active
-            return PlayersPending.Any(p => !p.HasFolded && !p.IsSittingOut)
+            return CurrentGame.PlayersPending.Any(p => !p.HasFolded && !p.IsSittingOut)
                    && !CurrentGame.RoundFinished;
         }
 
         public async ValueTask DisposeAsync()
         {
-            PlayersPending = null;
+            CurrentGame.PlayersPending = null;
             CardSet = null;
             CommunityCards = null;
             AvailableActions = null;

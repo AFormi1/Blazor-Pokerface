@@ -49,8 +49,7 @@ namespace Pokerface.Services
             TableModel newTable = new TableModel
             {
                 Id = nextID,
-                Name = $"Neuer Tisch {nextID}",
-                CurrentPlayers = 0
+                Name = $"Neuer Tisch {nextID}"
             };
 
             return newTable;

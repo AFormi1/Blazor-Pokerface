@@ -14,6 +14,7 @@ namespace Pokerface.Models
         public int CurrentBet { get; set; }
         public bool HasFolded { get; set; }
         public bool IsSittingOut { get; set; }
+        public bool IsLeaving { get; set; }
         public bool HasPostedAnte { get; set; }
         public bool HasPostedSmallBlind { get; set; }
         public bool HasPostedBigBlind { get; set; }
