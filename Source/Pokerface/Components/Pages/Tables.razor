@@ -1,6 +1,6 @@
 ﻿@page "/tables"
 
-@inject NavigationManager Nav
+@inject NavigationManager nav
 @inject TableService TableService
 @inject GameSessionService sessionService
 @implements IDisposable
@@ -12,8 +12,8 @@
         <h2 class="text-primary">Verfügbare Tische</h2>
 
         <div class="button-row">
-            <a href="/" class="btn btn-primary">Zurück</a>
-            <a href="/editable/" class="btn btn-primary">Neuen Tisch erstellen</a>
+            <button class="btn btn-primary" @onclick="Back">Zurück</button>
+            <button class="btn btn-primary" @onclick="New">Neuen Tisch erstellen</button>
         </div>
     </div>
 
@@ -50,11 +50,11 @@
                             <td class="hide-mobile text-center">@table.MinBet</td>
                             <td class="hide-mobile text-center">@table.MaxBet</td>
                             <td class="text-center">
-                                <a href="@(table.PlayersPending?.Count() == 0 ? $"/editable/{table.Id}" : "#")"
-                                   class="button-table btn @(table.PlayersPending?.Count() == 0 ? "btn-primary" : "btn-secondary disabled")"
-                                   @onclick="() => EditTable(table)">
-                                    Bearbeiten
-                                </a>
+                                @if (table.PlayersPending?.Count() == 0)
+                                {
+                                    <button class="btn btn-primary" @onclick="() => Edit(table)">Bearbeiten</button>
+                                }
+
                             </td>
                             <td class="text-center">
                                 <button class="button-table btn @(table.PlayersPending?.Count() < TableModel.MaxPlayers ? "btn-primary" : "btn-secondary")"
@@ -123,7 +123,7 @@
     private async Task EditTable(TableModel table)
     {
         if (table.PlayersPending?.Count() > 0)
-            return;       
+            return;
     }
 
 
@@ -154,7 +154,23 @@
             return;
         }
 
-        Nav.NavigateTo($"/joingametable/{table.Id}_{playerId}");
+        nav.NavigateTo($"{nav.BaseUri}joingametable/{table.Id}_{playerId}");
+    }
+
+
+    private async Task Back()
+    {
+        nav.NavigateTo(nav.BaseUri + "/");
+    }
+
+    private async Task New()
+    {
+        nav.NavigateTo(nav.BaseUri + "editable");
+    }
+
+    private async Task Edit(TableModel table)
+    {
+        nav.NavigateTo($"{nav.BaseUri}editable/{table.Id}");
     }
 
 

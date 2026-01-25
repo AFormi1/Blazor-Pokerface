@@ -1,65 +1,75 @@
 using Microsoft.AspNetCore.Components;
 using Pokerface.Components;
+using Pokerface.Pages;
 using Pokerface.Services;
 using Pokerface.Services.DB;
+using System.Net.Http;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// fallback for event args
+// Fallback for command-line args
 builder.Configuration.AddCommandLine(args);
 
-//the dbPath must come from the startup argumens - is required
+// DB path must come from startup arguments
 var dbPath = builder.Configuration["DB_PATH"] ?? throw new InvalidOperationException("DB_PATH is missing");
 
+// Services
 builder.Services.AddScoped(sp =>
 {
     var nav = sp.GetRequiredService<NavigationManager>();
     return new HttpClient { BaseAddress = new Uri(nav.BaseUri) };
 });
 
-
+builder.Services.AddHttpContextAccessor();
 
 builder.Services.AddControllers();
 
-// Add services to the container.
+// Add Razor Components (Blazor Server)
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
-//apply the arguments with dbPath to the sevice
+// Database service
 builder.Services.AddSingleton(sp =>
 {
     var config = sp.GetRequiredService<IConfiguration>();
     return new BaseDataBase("Table.db", dbPath);
 });
 
+// Other services
 builder.Services.AddSingleton<DbTableService>();
 builder.Services.AddSingleton<TableService>();
 builder.Services.AddSingleton<GameSessionService>();
 
 var app = builder.Build();
 
-// Initialize databases during startup and create the default database if not exists (playground)
+// Initialize databases during startup
 using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
     var tableDB = services.GetRequiredService<DbTableService>();
-
     tableDB.Init().Wait();
 }
 
-// Configure the HTTP request pipeline.
+// Middleware pipeline
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Error", createScopeForErrors: true);
-    // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
     app.UseHsts();
 }
+
 app.UseStatusCodePagesWithReExecute("/not-found", createScopeForStatusCodePages: true);
 app.UseHttpsRedirection();
+app.UseStaticFiles();
 
+var pathBase = builder.Configuration["PATH_BASE"];
+if (!string.IsNullOrEmpty(pathBase))
+{
+    app.UsePathBase(pathBase);
+}
+
+app.UseRouting();
 app.UseAntiforgery();
 
-app.MapStaticAssets();
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
 

@@ -1,4 +1,5 @@
 ﻿@page "/"
+@inject NavigationManager nav
 
 <PageTitle>Home</PageTitle>
 
@@ -6,8 +7,17 @@
     <div class="header-wrapper">
         <h2 class="text-primary">Poker at Ompfabau</h2>
         <br/>
-        <a href="/tables" class="btn btn-primary">Start</a>
+        <button class="btn btn-primary" @onclick="Start">Start</button>
     </div>
 </div>
+
+@code{
+
+    private async Task Start()
+    {
+        nav.NavigateTo(nav.BaseUri + "tables");
+    }
+
+}
 
 

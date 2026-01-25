@@ -1,11 +1,12 @@
-﻿
+﻿@inject NavigationManager nav
+
 @if (Model != null)
 {
-    <div class="poker-card" style="background-image:url('@Model.ImageUrl'); visibility:@(Model.IsVisible ? "visible" : "hidden");)"></div>
+    <div class="poker-card"
+         style=@($"background-image: url('{nav.BaseUri}{Model.ImageUrl}'); visibility: {(Model.IsVisible ? "visible" : "hidden")};")>
+    </div>
 }
 
 @code {
-
     [Parameter] public PokerCardModel? Model { get; set; }
-       
 }

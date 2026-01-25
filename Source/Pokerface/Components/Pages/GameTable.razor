@@ -1,6 +1,6 @@
 ﻿@page "/joingametable/{SessionId:int}_{PlayerID:int}"
 
-@inject NavigationManager Nav
+@inject NavigationManager nav
 @inject GameSessionService SessionService
 @inject HttpClient Http
 @inject IJSRuntime JS
@@ -195,7 +195,7 @@
         {
             _initialized = true;
 
-            Nav.LocationChanged += OnLocationChanged;
+            nav.LocationChanged += OnLocationChanged;
 
             await JS.InvokeVoidAsync("beforeCloseHandler.subscribe", SessionId, PlayerID);
         }
@@ -210,7 +210,7 @@
 
     public void Dispose()
     {
-        Nav.LocationChanged -= OnLocationChanged;
+        nav.LocationChanged -= OnLocationChanged;
     }
 
 
@@ -401,7 +401,7 @@
             if (deletePlayer) await SessionService.RemovePlayerFromSessionAsync(Session, Me);
         }
 
-        Nav.NavigateTo("/tables");
+        nav.NavigateTo(nav.BaseUri + "tables");
     }
 
     private void CommitAction(ActionOption option)

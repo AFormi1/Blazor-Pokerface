@@ -92,7 +92,7 @@
                 <div class="button-row">
                     <button class="btn btn-primary" type="submit">Speichern</button>
                     <button class="btn btn-warning" @onclick="DeleteTable">Löschen</button>
-                    <a href="/tables" class="btn btn-primary">Close</a>
+                    <button class="btn btn-primary" @onclick="Close">Close</button>
                 </div>
 
             </EditForm>
@@ -150,7 +150,7 @@
         }
 
         await TableService.SaveTableAsync(tableModel);
-        nav.NavigateTo("/tables");
+        nav.NavigateTo(nav.BaseUri + "tables");
     }
 
     private async Task DeleteTable()
@@ -163,7 +163,12 @@
             return;
 
         await TableService.DeleteTableAsync(tableModel);
-        nav.NavigateTo("/tables");
+        nav.NavigateTo(nav.BaseUri + "tables");
+    }
+
+    private async Task Close()
+    {
+       nav.NavigateTo(nav.BaseUri + "tables");
     }
 
 }
