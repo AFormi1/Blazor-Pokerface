@@ -28,14 +28,16 @@ namespace Pokerface.Models
 
         [Range(0, int.MaxValue, ErrorMessage = "Muss >= 0 sein")]
         public int MaxBet { get; set; } = 10000;
-        public int CurrentPlayers { get; set; }
+
 
         #endregion
 
         #region Runtime or Static Properties
 
         [Ignore]
-        public static int MaxPlayers { get; private set; } = 8;
+        public static int MaxPlayers { get; private set; } = 8;       
+        [Ignore]
+        public List<PlayerModel> PlayersPending { get; set; } = new List<PlayerModel>();
         [Ignore]
         public List<PlayerModel> Players { get; set; } = new List<PlayerModel>();
         [Ignore]
@@ -81,7 +83,6 @@ namespace Pokerface.Models
             CurrentBet = 0;
             RoundFinished = false;
             CurrentPlayer = 0;
-            CurrentPlayers = 0;
             PlayersGotCards = false;
         }
     }

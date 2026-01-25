@@ -3,6 +3,7 @@
 @inject NavigationManager Nav
 @inject TableService TableService
 @inject GameSessionService sessionService
+@implements IDisposable
 
 <PageTitle>Available Tables</PageTitle>
 
@@ -42,20 +43,21 @@
                     {
                         <tr>
                             <td>@table.Name</td>
-                            <td class="text-center">@table.CurrentPlayers / @TableModel.MaxPlayers</td>
+                            <td class="text-center">@table.PlayersPending?.Count() / @TableModel.MaxPlayers</td>
                             <td class="hide-mobile text-center">@table.Ante</td>
                             <td class="hide-mobile text-center">@table.SmallBlind</td>
                             <td class="hide-mobile text-center">@table.BigBlind</td>
                             <td class="hide-mobile text-center">@table.MinBet</td>
                             <td class="hide-mobile text-center">@table.MaxBet</td>
                             <td class="text-center">
-                                <a href="@($"/editable/{table.Id}")" 
-                                   class="button-table btn btn-sm @(table.CurrentPlayers == 0 ? "btn-primary" : "btn-secondary") align-content-center">
-                                Bearbeiten
-                            </a>
+                                <a href="@(table.PlayersPending?.Count() == 0 ? $"/editable/{table.Id}" : "#")"
+                                   class="button-table btn @(table.PlayersPending?.Count() == 0 ? "btn-primary" : "btn-secondary disabled")"
+                                   @onclick="() => EditTable(table)">
+                                    Bearbeiten
+                                </a>
                             </td>
                             <td class="text-center">
-                                <button class="button-table btn btn-sm @(table.CurrentPlayers < TableModel.MaxPlayers ? "btn-primary" : "btn-secondary")"
+                                <button class="button-table btn @(table.PlayersPending?.Count() < TableModel.MaxPlayers ? "btn-primary" : "btn-secondary")"
                                         @onclick="() => JoinTable(table)">
                                     Beitreten
                                 </button>
@@ -81,15 +83,23 @@
 
 
 
-    protected override void OnInitialized()
-    {
-        sessionService.CurrentTableUsersChanged += OnCurrentTableUsersChanged;
-    }
-
     protected override async Task OnInitializedAsync()
     {
-        tables = await TableService.GetTablesAsync();
+        sessionService.CurrentTableUsersChanged += OnCurrentTableUsersChanged;
+
+        tables = await TableService.GetTablesAsync(); // DB tables
+
+        // Merge in runtime session info
+        foreach (var table in tables)
+        {
+            var session = sessionService.GetGameSessionById(table.Id);
+            if (session != null)
+            {
+                table.PlayersPending = session.CurrentGame.PlayersPending;
+            }
+        }
     }
+
 
 
     private void OnCurrentTableUsersChanged(object? sender, TableModel updatedTable)
@@ -100,13 +110,20 @@
                 return;
 
             // Find the table in your list
-            var table = tables.FirstOrDefault(t => t.Id == updatedTable.Id);
-
-            if (table != null)
-                table.CurrentPlayers = updatedTable.CurrentPlayers;
-
-            StateHasChanged();
+            var index = tables.FindIndex(t => t.Id == updatedTable.Id);
+            if (index >= 0)
+            {
+                tables[index] = updatedTable;  // <-- update the list entry itself
+                StateHasChanged();
+            }
         });
+    }
+
+
+    private async Task EditTable(TableModel table)
+    {
+        if (table.PlayersPending?.Count() > 0)
+            return;       
     }
 
 
@@ -114,6 +131,12 @@
     {
         if (msgPlayerName == null || msgBox == null)
             return; // do nothing if inactive
+
+        if (table.PlayersPending?.Count() >= TableModel.MaxPlayers)
+        {
+            await msgBox.ShowAsync("Beitritt nicht möglich", "Maximale Spieleranzahl erreicht!");
+            return;
+        }
 
         string? userName = await msgPlayerName.ShowAsync();
 
@@ -135,6 +158,10 @@
     }
 
 
+    public void Dispose()
+    {
+        sessionService.CurrentTableUsersChanged -= OnCurrentTableUsersChanged;
+    }
 
 
 }

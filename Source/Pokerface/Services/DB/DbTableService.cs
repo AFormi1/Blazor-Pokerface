@@ -19,7 +19,6 @@ namespace Pokerface.Services.DB
             var tables = await GetItemsAsync();
             foreach (var table in tables)
             {
-                table.CurrentPlayers = 0;
                 await SaveItemAsync(table);
             }
         }
