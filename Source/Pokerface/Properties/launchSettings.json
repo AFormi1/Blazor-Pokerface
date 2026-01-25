@@ -8,7 +8,7 @@
       "applicationUrl": "http://0.0.0.0:5102",
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development",
-        "DB_PATH": "C:\\Users\\Andreas Maier\\source\\repos\\Blazor-Pokerface\\Source\\Pokerface\\bin"
+        "DB_PATH": "D:\\vs_workspace\\C#\\Blazor Pokerface\\Source\\Pokerface\\bin"
       }
     },
     "https": {
@@ -18,7 +18,7 @@
       "applicationUrl": "https://0.0.0.0:7210;http://0.0.0.0:5102",
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development",
-        "DB_PATH": "C:\\Users\\Andreas Maier\\source\\repos\\Blazor-Pokerface\\Source\\Pokerface\\bin"
+        "DB_PATH": "D:\\vs_workspace\\C#\\Blazor Pokerface\\Source\\Pokerface\\bin"
       }
     }
   }
