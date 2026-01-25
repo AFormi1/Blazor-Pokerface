@@ -715,6 +715,15 @@ namespace Pokerface.Models
         }
 
 
+        public bool HasActiveGame()
+        {
+            if (CurrentGame == null || PlayersPending == null)
+                return false;
+
+            // At least one player still active
+            return PlayersPending.Any(p => !p.HasFolded && !p.IsSittingOut)
+                   && !CurrentGame.RoundFinished;
+        }
 
         public async ValueTask DisposeAsync()
         {

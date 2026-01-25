@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Components;
 using Pokerface.Components;
 using Pokerface.Services;
 using Pokerface.Services.DB;
@@ -9,6 +10,16 @@ builder.Configuration.AddCommandLine(args);
 
 //the dbPath must come from the startup argumens - is required
 var dbPath = builder.Configuration["DB_PATH"] ?? throw new InvalidOperationException("DB_PATH is missing");
+
+builder.Services.AddScoped(sp =>
+{
+    var nav = sp.GetRequiredService<NavigationManager>();
+    return new HttpClient { BaseAddress = new Uri(nav.BaseUri) };
+});
+
+
+
+builder.Services.AddControllers();
 
 // Add services to the container.
 builder.Services.AddRazorComponents()
@@ -51,5 +62,7 @@ app.UseAntiforgery();
 app.MapStaticAssets();
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
+
+app.MapControllers();
 
 app.Run();

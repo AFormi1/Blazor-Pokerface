@@ -1,5 +1,4 @@
-﻿using Pokerface.Components.Pages;
-using Pokerface.Models;
+﻿using Pokerface.Models;
 using Pokerface.Services.DB;
 
 namespace Pokerface.Services
